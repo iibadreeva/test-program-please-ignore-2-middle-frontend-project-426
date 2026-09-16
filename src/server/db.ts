@@ -21,16 +21,16 @@ function databaseUrl() {
   }
 }
 
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
+function createPrismaClient() {
+  const url = databaseUrl();
+  return new PrismaClient({
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
-    datasources: {
-      db: {
-        url: databaseUrl(),
-      },
-    },
+    // Only override when set — during `next build` DATABASE_URL may be absent.
+    ...(url ? { datasources: { db: { url } } } : {}),
   });
+}
+
+export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;

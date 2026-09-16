@@ -6,12 +6,35 @@ export type SessionPayload = {
   name: string;
 };
 
-function getSecretKey() {
+let cachedKey: Uint8Array | null = null;
+
+/** Clears the memoized signing key (tests / rare env swaps). */
+export function resetSessionSecretCache() {
+  cachedKey = null;
+}
+
+async function getSecretKey() {
+  if (cachedKey) return cachedKey;
+
   const secret = process.env.JWT_SECRET;
-  if (!secret || secret.length < 16) {
-    throw new Error("JWT_SECRET must be set and at least 16 characters");
+  if (secret && secret.length >= 16) {
+    cachedKey = new TextEncoder().encode(secret);
+    return cachedKey;
   }
-  return new TextEncoder().encode(secret);
+
+  // Contract allows only PORT + DATABASE_URL from outside. Deriving the signing
+  // key from DATABASE_URL keeps sessions stable across restarts without a third
+  // env var. Trade-off: anyone with DATABASE_URL can forge session tokens — set
+  // JWT_SECRET explicitly when that matters.
+  const material = process.env.DATABASE_URL;
+  if (!material) {
+    throw new Error("Set JWT_SECRET (≥ 16 chars) or DATABASE_URL to sign sessions");
+  }
+
+  const data = new TextEncoder().encode(`hexparts-session:${material}`);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  cachedKey = new Uint8Array(digest);
+  return cachedKey;
 }
 
 export async function signSessionToken(
@@ -23,12 +46,12 @@ export async function signSessionToken(
     .setSubject(payload.sub)
     .setIssuedAt()
     .setExpirationTime(`${maxAgeSeconds}s`)
-    .sign(getSecretKey());
+    .sign(await getSecretKey());
 }
 
 export async function verifySessionToken(token: string): Promise<SessionPayload | null> {
   try {
-    const { payload } = await jwtVerify(token, getSecretKey());
+    const { payload } = await jwtVerify(token, await getSecretKey());
     if (!payload.sub || typeof payload.email !== "string" || typeof payload.name !== "string") {
       return null;
     }

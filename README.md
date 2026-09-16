@@ -1,80 +1,169 @@
-# Интернет-магазин комплектующих для ПК
+# 🛒 HexParts — Интернет-магазин комплектующих для ПК
 
 [![hexlet-check](https://github.com/iibadreeva/test-program-please-ignore-2-middle-frontend-project-426/actions/workflows/hexlet-check.yml/badge.svg)](https://github.com/iibadreeva/test-program-please-ignore-2-middle-frontend-project-426/actions)
+![Next.js](https://img.shields.io/badge/Next.js_15-black?style=flat-square&logo=next.js)
+![React](https://img.shields.io/badge/React_19-20232A?style=flat-square&logo=react&logoColor=61DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=flat-square&logo=prisma&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)
 
-**HexParts** — учебный интернет-магазин на Next.js (App Router): каталог с фильтрами, корзина, регистрация/вход, оформление заказа и личный кабинет. Бэкенд — собственные Route Handlers + Prisma + PostgreSQL.
+**HexParts** — современный полнофункциональный интернет-магазин компьютерных комплектующих на **Next.js (App Router)**. Включает интерактивный каталог товаров с гибкими фильтрами, корзину, оформление заказов с выбором доставки или самовывоза, личный кабинет и полноценный REST API поверх Prisma ORM и PostgreSQL.
 
-Учебный проект Хекслета: https://ru.hexlet.io/programs/test-program-please-ignore-2-middle-frontend
+> 🎓 **Учебный проект Хекслета**: [Программа «Фронтенд-разработчик (Middle)»](https://ru.hexlet.io/programs/test-program-please-ignore-2-middle-frontend)
 
-## Стек
+---
 
-- TypeScript, Next.js, React
-- Prisma + PostgreSQL (например Prisma Postgres / Neon / Supabase)
-- Tailwind CSS
-- TypeSpec → OpenAPI
-- jose + bcryptjs (JWT в `httpOnly` cookie)
-- Zustand (клиентский стор корзины поверх серверного API)
-- Vitest, Playwright
+### 🌟 Основные возможности
 
-## Установка
+- 🔍 **Каталог и поиск:** фильтрация по категориям/параметрам, сортировка, поиск в реальном времени и пагинация.
+- 🛍️ **Корзина:** сквозная работа с корзиной (гостевая корзина + автоматический merge при авторизации).
+- 🔐 **Аутентификация:** регистрация, вход, безопасная работа с JWT-токенами в `httpOnly` cookie.
+- 📦 **Оформление заказа:** поддержка курьерской доставки и пунктов самовывоза.
+- 👤 **Личный кабинет:** история и детальный статус оформленных заказов.
+- 🩺 **Health Check:** эндпоинт `GET /api/health` — проверка, что процесс жив и PostgreSQL отвечает (см. ниже).
+
+---
+
+### 🩺 Health Check (`GET /api/health`)
+
+Эндпоинт для CI, деплоя и мониторинга: показывает, что Next.js слушает порт **и** до Postgres можно достучаться.
+
+Реализация: `src/app/api/health/route.ts`.
+
+| Результат | HTTP | Тело | Когда |
+| :--- | :---: | :--- | :--- |
+| ОК | `200` | `{ "status": "ok" }` | `SELECT 1` к БД прошёл успешно |
+| БД недоступна | `503` | ошибка `INTERNAL_ERROR` («База данных недоступна») | нет соединения / ошибка Prisma |
+
+- Ответ **не кэшируется** (`dynamic = "force-dynamic"`) — каждый запрос выполняется заново.
+- Пример: [http://localhost:3000/api/health](http://localhost:3000/api/health)
+
+> Это HTTP-проверка приложения. Отдельно в `docker-compose.yml` у сервиса `db` есть Compose-`healthcheck` (`pg_isready`) — он нужен, чтобы контейнер `app` стартовал только после готовности Postgres.
+
+---
+
+### 🛠️ Стек технологий
+
+* **Frontend:** React, Next.js (App Router, Server Components & Server Actions), Tailwind CSS, Lucide Icons, Zustand
+* **Backend & API:** Next.js Route Handlers, TypeSpec → OpenAPI 3.0
+* **База данных & ORM:** PostgreSQL, Prisma ORM
+* **Безопасность:** `jose` (JWT), `bcryptjs` (хеширование паролей)
+* **Тестирование & CI:** Vitest, Playwright, GitHub Actions
+* **Инфраструктура:** Docker, Docker Compose (Multi-stage build)
+
+---
+
+### 📋 Контракт запуска и переменные окружения
+
+Приложение упаковывается в единый Docker-образ и обслуживает UI и REST API (`/api/*`) на одном порту через `0.0.0.0:$PORT`.
+
+| Переменная | Обязательная | Описание / Пример |
+| :--- | :---: | :--- |
+| `PORT` | ❌ | Порт HTTP-сервера (по умолчанию `3000`) |
+| `DATABASE_URL` | ✅ | Строка подключения к PostgreSQL (`postgresql://user:pass@host:5432/db`) |
+| `JWT_SECRET` | ❌ | Ключ подписи JWT (≥ 16 симв.). Если не задан — безопасно выводится из `DATABASE_URL` |
+
+> ℹ️ **Автоматические миграции и сид:**  
+> При старте контейнера скрипт `docker-entrypoint.sh` автоматически дожидается готовности PostgreSQL, применяет миграции (`prisma migrate deploy`) и выполняет идемпотентное наполнение каталога.
+
+---
+
+### 🚀 Быстрый старт
+
+#### Вариант 1: Запуск через Docker Compose (Рекомендуемый)
+
+Убедитесь, что у вас запущен Docker Desktop / Docker Engine:
 
 ```bash
+# Клонирование репозитория
 git clone https://github.com/iibadreeva/test-program-please-ignore-2-middle-frontend-project-426.git
 cd test-program-please-ignore-2-middle-frontend-project-426
-npm install
-cp .env.example .env
+
+# Запуск приложения и базы данных
+docker compose up --build
 ```
 
-В `.env` укажите:
+- 🌐 **Приложение:** [http://localhost:3000](http://localhost:3000)
+- 🩺 **Health Check:** [http://localhost:3000/api/health](http://localhost:3000/api/health)
+- 🗄️ **PostgreSQL:** `localhost:5432` (`hexparts` / `hexparts`, БД: `pc_parts_shop`)
 
-- `DATABASE_URL` — строка подключения к PostgreSQL
-- `JWT_SECRET` — случайная строка (≥ 16 символов) для подписи сессий
+---
 
-Затем:
+#### Вариант 2: Локальная разработка
 
-```bash
-npx prisma db push
-npm run db:seed
-npm run dev
+1. **Установка зависимостей и настройка окружения:**
+   ```bash
+   npm install
+   cp .env.example .env
+   ```
+
+2. **Запуск базы данных в Docker:**
+   ```bash
+   docker compose up -d db
+   ```
+
+3. **Применение миграций и сидирование данных:**
+   ```bash
+   npm run db:deploy
+   npm run db:seed
+   ```
+
+4. **Запуск dev-сервера:**
+   ```bash
+   npm run dev
+   ```
+
+Приложение будет доступно по адресу [http://localhost:3000](http://localhost:3000).
+
+---
+
+### 📜 Доступные npm-скрипты
+
+| Скрипт | Описание |
+| :--- | :--- |
+| `npm run dev` | Запуск сервера разработки с Hot-Reload |
+| `npm run build` | Production-сборка приложения Next.js |
+| `npm start` | Запуск собранного production-сервера |
+| `npm run typecheck` | Проверка типов TypeScript (фронтенд + скрипты) |
+| `npm run db:deploy` | Применение миграций Prisma к базе данных |
+| `npm run db:migrate` | Создание новой миграции в процессе разработки |
+| `npm run db:seed` | Идемпотентное наполнение каталога тестовыми данными |
+| `npm run seed:build` | Сборка standalone-скрипта сида для Docker-образа |
+| `npm run tsp:compile` | Компиляция спецификации TypeSpec в OpenAPI (`api/openapi.yaml`) |
+| `npm test` | Запуск модульных тестов Vitest |
+| `npm run test:e2e` | Запуск сквозных E2E-тестов Playwright |
+
+---
+
+### 🏗️ Архитектура проекта
+
+```text
+├── api/                  # TypeSpec спецификации API и сгенерированный openapi.yaml
+├── prisma/               # Схема БД, SQL-миграции и сид-скрипты
+├── public/               # Статические ассеты и изображения
+├── src/
+│   ├── app/              # Next.js App Router (страницы и Route Handlers /api/*)
+│   ├── components/       # UI-компоненты (каталог, корзина, шапка, футер)
+│   ├── lib/              # Утилиты, клиенты и общие хелперы
+│   └── server/           # Серверный слой: сервисы, Prisma-клиент, JWT и авторизация
+├── Dockerfile            # Многоэтапная оптимизированная сборка контейнера
+├── docker-compose.yml    # Конфигурация локального окружения с PostgreSQL
+└── docker-entrypoint.sh  # Точка входа контейнера (healthcheck БД, миграции, сид, старт)
 ```
-
-Приложение: http://localhost:3000
-
-## Скрипты
-
-| Команда | Назначение |
-| --- | --- |
-| `npm run dev` | локальная разработка |
-| `npm run build` / `npm start` | production-сборка |
-| `npm run db:push` | синхронизация схемы с БД |
-| `npm run db:migrate` | миграции Prisma |
-| `npm run db:seed` | наполнение каталога |
-| `npm run tsp:compile` | генерация OpenAPI из TypeSpec |
-| `npm test` | unit-тесты |
-| `npm run test:e2e` | e2e Playwright |
-
-## Возможности
-
-- Главная с промо-блоками
-- Каталог: фильтры, поиск, сортировка, пагинация
-- Карточка товара и серверная корзина (в том числе для гостя)
-- Регистрация / вход / выход, merge гостевой корзины
-- Оформление заказа: доставка или самовывоз
-- Личный кабинет с историей заказов
-
-## Архитектура
-
-Монолит Next.js: UI (Server Components / Actions) и REST API (`/api/*`) вызывают общий слой сервисов → Prisma → Postgres. Контракт API описан в `api/main.tsp` (сборка: `npm run tsp:compile` → `api/openapi.yaml`).
 
 ---
 
 <details>
-<summary>Автоматические тесты Хекслета</summary>
+<summary><b>🤖 Автоматические тесты Хекслета</b></summary>
+<br>
 
-Тесты запускаются на каждый коммит. За запуск отвечает файл `.github/workflows/hexlet-check.yml` — не удаляйте и не переименовывайте ни его, ни репозиторий.
-
+Тесты запускаются автоматически на каждый push/PR. За запуск отвечает workflow `.github/workflows/hexlet-check.yml` — не удаляйте и не переименовывайте этот файл и репозиторий.
 </details>
 
-## О Хекслете
+---
 
-[Хекслет](https://ru.hexlet.io/) — школа программирования: авторские программы обучения с практикой, поддержкой наставников и реальными проектами, которые остаются в резюме. Этот репозиторий — один из таких проектов.
+### 🎓 О Хекслете
+
+[Хекслет](https://ru.hexlet.io/) — школа программирования с практическими проектами, код-ревью и поддержкой наставников. Данный репозиторий разработан в рамках проектного обучения.

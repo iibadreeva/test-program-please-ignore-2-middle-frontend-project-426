@@ -420,56 +420,100 @@ function expandCatalog(base: SeedProduct[]): SeedProduct[] {
   return [...base, ...extras];
 }
 
+const pickupPoints = [
+  { name: "Пункт HexParts · Центр", address: "Москва, Тверская ул., 12" },
+  { name: "Пункт HexParts · Юг", address: "Москва, Варшавское шоссе, 95" },
+  { name: "Пункт HexParts · Север", address: "Москва, Ленинградский пр-т, 47" },
+] as const;
+
+/** Postgres advisory lock so parallel container starts don't race on upserts. */
+const SEED_LOCK_KEY = 4_264_260_001;
+
 async function main() {
-  console.log("Seeding database...");
+  console.log("Seeding database (idempotent)...");
+  await prisma.$executeRaw`SELECT pg_advisory_lock(${SEED_LOCK_KEY})`;
 
-  await prisma.orderItem.deleteMany();
-  await prisma.order.deleteMany();
-  await prisma.cartItem.deleteMany();
-  await prisma.cart.deleteMany();
-  await prisma.product.deleteMany();
-  await prisma.category.deleteMany();
-  await prisma.brand.deleteMany();
-  await prisma.pickupPoint.deleteMany();
-  await prisma.user.deleteMany();
+  try {
+    await seedCatalog();
+  } finally {
+    await prisma.$executeRaw`SELECT pg_advisory_unlock(${SEED_LOCK_KEY})`;
+  }
+}
 
+async function seedCatalog() {
   const categoryRecords = await Promise.all(
-    categories.map((c) => prisma.category.create({ data: c })),
+    categories.map((c) =>
+      prisma.category.upsert({
+        where: { slug: c.slug },
+        create: c,
+        update: { name: c.name },
+      }),
+    ),
   );
-  const brandRecords = await Promise.all(brands.map((b) => prisma.brand.create({ data: b })));
+  const brandRecords = await Promise.all(
+    brands.map((b) =>
+      prisma.brand.upsert({
+        where: { slug: b.slug },
+        create: b,
+        update: { name: b.name },
+      }),
+    ),
+  );
 
   const categoryBySlug = Object.fromEntries(categoryRecords.map((c) => [c.slug, c.id]));
   const brandBySlug = Object.fromEntries(brandRecords.map((b) => [b.slug, b.id]));
 
   const products = expandCatalog(catalog);
+  const chunkSize = 10;
 
-  for (const p of products) {
-    await prisma.product.create({
-      data: {
-        slug: p.slug,
-        title: p.title,
-        description: p.description,
-        priceCents: p.priceCents,
-        oldPriceCents: p.oldPriceCents,
-        imageUrl: productImage(p.slug.slice(0, 24)),
-        stock: p.stock,
-        rating: p.rating,
-        specs: p.specs,
-        categoryId: categoryBySlug[p.categorySlug],
-        brandId: brandBySlug[p.brandSlug],
-      },
-    });
+  for (let i = 0; i < products.length; i += chunkSize) {
+    const chunk = products.slice(i, i + chunkSize);
+    await Promise.all(
+      chunk.map((p) => {
+        const createData = {
+          slug: p.slug,
+          title: p.title,
+          description: p.description,
+          priceCents: p.priceCents,
+          oldPriceCents: p.oldPriceCents ?? null,
+          imageUrl: productImage(p.slug.slice(0, 24)),
+          stock: p.stock,
+          rating: p.rating,
+          specs: p.specs,
+          categoryId: categoryBySlug[p.categorySlug],
+          brandId: brandBySlug[p.brandSlug],
+        };
+
+        // On restart: refresh catalog copy only — do not overwrite stock/price/rating.
+        return prisma.product.upsert({
+          where: { slug: p.slug },
+          create: createData,
+          update: {
+            title: createData.title,
+            description: createData.description,
+            imageUrl: createData.imageUrl,
+            specs: createData.specs,
+            categoryId: createData.categoryId,
+            brandId: createData.brandId,
+          },
+        });
+      }),
+    );
   }
 
-  await prisma.pickupPoint.createMany({
-    data: [
-      { name: "Пункт HexParts · Центр", address: "Москва, Тверская ул., 12" },
-      { name: "Пункт HexParts · Юг", address: "Москва, Варшавское шоссе, 95" },
-      { name: "Пункт HexParts · Север", address: "Москва, Ленинградский пр-т, 47" },
-    ],
-  });
+  await Promise.all(
+    pickupPoints.map((point) =>
+      prisma.pickupPoint.upsert({
+        where: { name: point.name },
+        create: point,
+        update: { address: point.address },
+      }),
+    ),
+  );
 
-  console.log(`Seeded ${categoryRecords.length} categories, ${brandRecords.length} brands, ${products.length} products.`);
+  console.log(
+    `Seeded ${categoryRecords.length} categories, ${brandRecords.length} brands, ${products.length} products.`,
+  );
 }
 
 main()

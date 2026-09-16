@@ -59,8 +59,8 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
       <h1 className="font-display text-3xl font-semibold">Каталог</h1>
       {dbUnavailable ? (
         <p className="mt-4 border border-warn/40 bg-surface p-4 text-sm text-warn" data-testid="catalog-db-error">
-          База данных недоступна. Поднимите Postgres (`docker compose up -d`) или укажите Neon
-          `DATABASE_URL` в `.env`, затем выполните `npx prisma migrate deploy` и `npm run db:seed`.
+          База данных недоступна. Поднимите Postgres (`docker compose up -d db`) или укажите
+          `DATABASE_URL` в `.env`, затем выполните `npm run db:deploy` и `npm run db:seed`.
         </p>
       ) : (
         <p className="mt-1 text-sm text-muted">

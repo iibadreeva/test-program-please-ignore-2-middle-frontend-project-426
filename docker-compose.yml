@@ -10,6 +10,23 @@ services:
       POSTGRES_DB: pc_parts_shop
     volumes:
       - hexparts_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hexparts -d pc_parts_shop"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: "3000"
+      DATABASE_URL: postgresql://hexparts:hexparts@db:5432/pc_parts_shop
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
   hexparts_pg:
