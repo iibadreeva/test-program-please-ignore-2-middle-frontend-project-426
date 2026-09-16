@@ -1,0 +1,739 @@
+openapi: 3.0.0
+info:
+  title: HexParts Shop API
+  version: 0.0.0
+tags:
+  - name: Auth
+  - name: Catalog
+  - name: Cart
+  - name: Orders
+paths:
+  /auth/login:
+    post:
+      operationId: Auth_login
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPublic'
+        '401':
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginBody'
+  /auth/logout:
+    post:
+      operationId: Auth_logout
+      parameters: []
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+      tags:
+        - Auth
+  /auth/me:
+    get:
+      operationId: Auth_me
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPublic'
+        '401':
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      tags:
+        - Auth
+  /auth/register:
+    post:
+      operationId: Auth_register
+      parameters: []
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPublic'
+        '400':
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterBody'
+  /brands:
+    get:
+      operationId: Catalog_listBrands
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Brand'
+      tags:
+        - Catalog
+  /cart:
+    get:
+      operationId: CartApi_getCart
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+      tags:
+        - Cart
+    delete:
+      operationId: CartApi_clearCart
+      parameters: []
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+      tags:
+        - Cart
+  /cart/items:
+    post:
+      operationId: CartApi_addItem
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '400':
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      tags:
+        - Cart
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddCartItemBody'
+  /cart/items/{id}:
+    patch:
+      operationId: CartApi_updateItem
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '404':
+          description: The server cannot find the requested resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      tags:
+        - Cart
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCartItemBody'
+    delete:
+      operationId: CartApi_removeItem
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '404':
+          description: The server cannot find the requested resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      tags:
+        - Cart
+  /categories:
+    get:
+      operationId: Catalog_listCategories
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+      tags:
+        - Catalog
+  /orders:
+    post:
+      operationId: Orders_create
+      parameters: []
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      tags:
+        - Orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderBody'
+    get:
+      operationId: Orders_list
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+        '401':
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      tags:
+        - Orders
+  /orders/{id}:
+    get:
+      operationId: Orders_get
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '401':
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: The server cannot find the requested resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      tags:
+        - Orders
+  /pickup-points:
+    get:
+      operationId: Catalog_listPickupPoints
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PickupPoint'
+      tags:
+        - Catalog
+  /products:
+    get:
+      operationId: Catalog_listProducts
+      parameters:
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+          explode: false
+        - name: brand
+          in: query
+          required: false
+          schema:
+            type: string
+          explode: false
+        - name: minPrice
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+          explode: false
+        - name: maxPrice
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+          explode: false
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+          explode: false
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - price_asc
+              - price_desc
+              - rating_desc
+              - newest
+          explode: false
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+          explode: false
+        - name: perPage
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductListResponse'
+      tags:
+        - Catalog
+  /products/{slug}:
+    get:
+      operationId: Catalog_getProduct
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDetail'
+        '404':
+          description: The server cannot find the requested resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      tags:
+        - Catalog
+components:
+  schemas:
+    AddCartItemBody:
+      type: object
+      required:
+        - productId
+      properties:
+        productId:
+          type: string
+        quantity:
+          type: integer
+          format: int32
+    Brand:
+      type: object
+      required:
+        - id
+        - slug
+        - name
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        name:
+          type: string
+    Cart:
+      type: object
+      required:
+        - id
+        - items
+        - totalCents
+        - itemsCount
+      properties:
+        id:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+        totalCents:
+          type: integer
+          format: int32
+        itemsCount:
+          type: integer
+          format: int32
+    CartItem:
+      type: object
+      required:
+        - id
+        - productId
+        - quantity
+        - product
+        - lineTotalCents
+      properties:
+        id:
+          type: string
+        productId:
+          type: string
+        quantity:
+          type: integer
+          format: int32
+        product:
+          $ref: '#/components/schemas/ProductSummary'
+        lineTotalCents:
+          type: integer
+          format: int32
+    Category:
+      type: object
+      required:
+        - id
+        - slug
+        - name
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        name:
+          type: string
+    CreateOrderBody:
+      type: object
+      required:
+        - deliveryType
+        - recipientName
+        - phone
+      properties:
+        deliveryType:
+          type: string
+          enum:
+            - DELIVERY
+            - PICKUP
+        address:
+          type: string
+        pickupPointId:
+          type: string
+        recipientName:
+          type: string
+        phone:
+          type: string
+        comment:
+          type: string
+    ErrorBody:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details: {}
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          $ref: '#/components/schemas/ErrorBody'
+    LoginBody:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+    Order:
+      type: object
+      required:
+        - id
+        - status
+        - deliveryType
+        - recipientName
+        - phone
+        - totalCents
+        - createdAt
+        - items
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum:
+            - NEW
+            - PROCESSING
+            - SHIPPED
+            - COMPLETED
+            - CANCELLED
+        deliveryType:
+          type: string
+          enum:
+            - DELIVERY
+            - PICKUP
+        address:
+          type: string
+        pickupPointId:
+          type: string
+        recipientName:
+          type: string
+        phone:
+          type: string
+        comment:
+          type: string
+        totalCents:
+          type: integer
+          format: int32
+        createdAt:
+          type: string
+          format: date-time
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+    OrderItem:
+      type: object
+      required:
+        - id
+        - titleSnapshot
+        - priceCentsSnapshot
+        - imageUrlSnapshot
+        - quantity
+      properties:
+        id:
+          type: string
+        productId:
+          type: string
+        titleSnapshot:
+          type: string
+        priceCentsSnapshot:
+          type: integer
+          format: int32
+        imageUrlSnapshot:
+          type: string
+        quantity:
+          type: integer
+          format: int32
+    PaginationMeta:
+      type: object
+      required:
+        - page
+        - perPage
+        - total
+        - totalPages
+      properties:
+        page:
+          type: integer
+          format: int32
+        perPage:
+          type: integer
+          format: int32
+        total:
+          type: integer
+          format: int32
+        totalPages:
+          type: integer
+          format: int32
+    PickupPoint:
+      type: object
+      required:
+        - id
+        - name
+        - address
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        address:
+          type: string
+    ProductDetail:
+      type: object
+      required:
+        - description
+        - specs
+      properties:
+        description:
+          type: string
+        specs:
+          type: object
+          additionalProperties: {}
+      allOf:
+        - $ref: '#/components/schemas/ProductSummary'
+    ProductListResponse:
+      type: object
+      required:
+        - items
+        - meta
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductSummary'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+    ProductSummary:
+      type: object
+      required:
+        - id
+        - slug
+        - title
+        - priceCents
+        - imageUrl
+        - stock
+        - rating
+        - category
+        - brand
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        title:
+          type: string
+        priceCents:
+          type: integer
+          format: int32
+        oldPriceCents:
+          type: integer
+          format: int32
+        imageUrl:
+          type: string
+        stock:
+          type: integer
+          format: int32
+        rating:
+          type: number
+          format: double
+        category:
+          $ref: '#/components/schemas/Category'
+        brand:
+          $ref: '#/components/schemas/Brand'
+    RegisterBody:
+      type: object
+      required:
+        - email
+        - password
+        - name
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+        name:
+          type: string
+    UpdateCartItemBody:
+      type: object
+      required:
+        - quantity
+      properties:
+        quantity:
+          type: integer
+          format: int32
+    UserPublic:
+      type: object
+      required:
+        - id
+        - email
+        - name
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+servers:
+  - url: http://localhost:3000/api
+    description: Local development
+    variables: {}

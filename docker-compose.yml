@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: hexparts
+      POSTGRES_PASSWORD: hexparts
+      POSTGRES_DB: pc_parts_shop
+    volumes:
+      - hexparts_pg:/var/lib/postgresql/data
+
+volumes:
+  hexparts_pg:
