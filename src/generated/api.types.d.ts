@@ -17,10 +17,21 @@ export namespace Schemas {
     id: string;
     slug: string;
     title: string;
+    /**
+     * Краткое описание для карточки в списке
+     */
+    description: string;
     price: Money;
     oldPrice?: Money;
-    imageUrl: string;
+    /**
+     * null означает, что изображения нет — клиент показывает заглушку
+     */
+    imageUrl: string | null;
     stock: number;
+    /**
+     * Товар доступен к покупке (остаток больше нуля)
+     */
+    available: boolean;
     rating: number;
     category: Category;
     brand: Brand;
@@ -66,7 +77,7 @@ export namespace Schemas {
     items: Array<OrderItem>;
   };
   export type PaginationMeta = { page: number; perPage: number; total: number; totalPages: number };
-  export type ProductDetail = ProductSummary & { description: string; specs: Record<string, unknown> };
+  export type ProductDetail = ProductSummary & { specs: Record<string, unknown> };
   export type ProductListResponse = { items: Array<ProductSummary>; meta: PaginationMeta };
   export type RegisterBody = { email: string; password: string; name?: string };
   export type UpdateCartItemBody = {
@@ -230,6 +241,7 @@ export namespace Endpoints {
         brand: string;
         minPrice: number;
         maxPrice: number;
+        available: boolean;
         search: string;
         sort: "price_asc" | "price_desc" | "rating_desc" | "newest";
         page: number;

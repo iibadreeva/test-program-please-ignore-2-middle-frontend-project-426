@@ -140,7 +140,7 @@ export async function createOrder(userId: string, input: CreateOrderInput): Prom
           productId: product.id,
           titleSnapshot: product.title,
           priceSnapshot: product.price,
-          imageUrlSnapshot: product.imageUrl,
+          imageUrlSnapshot: product.imageUrl ?? "",
           quantity: item.quantity,
         });
         total += product.price * item.quantity;

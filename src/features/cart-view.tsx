@@ -8,6 +8,7 @@ import {
   useCartStore,
   useCartTotal,
 } from "@/features/cart/store-provider";
+import { ProductImage } from "@/components/product-image";
 import { formatPrice } from "@/shared/format";
 
 export function CartView() {
@@ -45,11 +46,10 @@ export function CartView() {
             className="grid gap-4 border border-border bg-surface p-4 sm:grid-cols-[96px_1fr_auto]"
             data-testid="cart-item"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <ProductImage
               src={item.product.imageUrl}
-              alt=""
-              className="aspect-square w-24 object-cover bg-surface-2"
+              alt={item.product.title}
+              className="aspect-square w-24"
             />
             <div>
               <Link

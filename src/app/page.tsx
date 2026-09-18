@@ -80,7 +80,7 @@ export default async function HomePage() {
           <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {featured.map((product) => (
               <li key={product.id}>
-                <ProductCard product={product} />
+                <ProductCard product={product} testIdPrefix="featured-item" />
               </li>
             ))}
           </ul>

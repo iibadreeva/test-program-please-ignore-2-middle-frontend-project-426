@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { ProductImage } from "@/components/product-image";
 import { formatPrice } from "@/shared/format";
 import { requireUser } from "@/server/auth/session";
 import { getOrderById, orderStatusLabel } from "@/server/services/orders";
@@ -93,11 +94,10 @@ export default async function AccountOrderDetailPage({ params, searchParams }: P
             className="grid gap-3 border border-border bg-surface p-3 sm:grid-cols-[72px_1fr_auto]"
             data-testid="order-item"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={item.imageUrlSnapshot}
-              alt=""
-              className="aspect-square w-[72px] object-cover bg-surface-2"
+            <ProductImage
+              src={item.imageUrlSnapshot || null}
+              alt={item.titleSnapshot}
+              className="aspect-square w-[72px]"
             />
             <div>
               <p className="font-medium">{item.titleSnapshot}</p>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AddToCartButton } from "@/features/add-to-cart-button";
+import { ProductImage } from "@/components/product-image";
 import { formatPrice } from "@/shared/format";
 import { getProductBySlug } from "@/server/services/catalog";
 
@@ -21,12 +22,11 @@ export default async function ProductPage({ params }: Props) {
 
   return (
     <article data-testid="product-page" className="grid gap-8 lg:grid-cols-2">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <ProductImage
         src={product.imageUrl}
         alt={product.title}
-        className="aspect-[4/3] w-full border border-border bg-surface object-cover"
-        data-testid="product-image"
+        className="aspect-[4/3] w-full border border-border"
+        testId="product-image"
       />
 
       <div>

@@ -48,19 +48,30 @@ model ProductSummary {
   id: string;
   slug: string;
   title: string;
+
+  /** Краткое описание для карточки в списке */
+  description: string;
+
   /** Цена в целых рублях */
   @example("16990")
   price: Money;
+
   oldPrice?: Money;
-  imageUrl: string;
+
+  /** null означает, что изображения нет — клиент показывает заглушку */
+  imageUrl: string | null;
+
   stock: int32;
+
+  /** Товар доступен к покупке (остаток больше нуля) */
+  available: boolean;
+
   rating: float64;
   category: Category;
   brand: Brand;
 }
 
 model ProductDetail extends ProductSummary {
-  description: string;
   specs: Record<unknown>;
 }
 
@@ -229,7 +240,13 @@ interface Catalog {
     @query brand?: string,
     @query minPrice?: int32,
     @query maxPrice?: int32,
+
+    /** Оставить только доступные товары */
+    @query available?: boolean,
+
+    /** Поиск по названию товара */
     @query search?: string,
+
     @query sort?: "price_asc" | "price_desc" | "rating_desc" | "newest",
     @query page?: int32,
     @query perPage?: int32,

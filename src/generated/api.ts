@@ -24,10 +24,12 @@ export const ProductSummary = z.strictObject({
   id: z.string(),
   slug: z.string(),
   title: z.string(),
+  description: z.string(),
   price: Money,
   oldPrice: Money.optional(),
-  imageUrl: z.string(),
+  imageUrl: z.string().nullable(),
   stock: z.number().int(),
+  available: z.boolean(),
   rating: z.number(),
   category: Category,
   brand: Brand,
@@ -108,9 +110,7 @@ export const PaginationMeta = z.strictObject({
 });
 
 export type ProductDetail = __TypedOpenapi.Schemas.ProductDetail;
-export const ProductDetail = ProductSummary.and(
-  z.strictObject({ description: z.string(), specs: z.record(z.string(), z.unknown()) }),
-);
+export const ProductDetail = ProductSummary.and(z.strictObject({ specs: z.record(z.string(), z.unknown()) }));
 
 export type ProductListResponse = __TypedOpenapi.Schemas.ProductListResponse;
 export const ProductListResponse = z.strictObject({ items: z.array(ProductSummary), meta: PaginationMeta });
@@ -294,6 +294,9 @@ export const get_Catalog_listProducts = {
         brand: z.string(),
         minPrice: z.coerce.number().int(),
         maxPrice: z.coerce.number().int(),
+        available: z
+          .union([z.boolean(), z.string(), z.number()])
+          .transform((x) => x === true || x === "true" || x === 1 || x === "1"),
         search: z.string(),
         sort: z.enum(["price_asc", "price_desc", "rating_desc", "newest"]),
         page: z.coerce.number().int(),

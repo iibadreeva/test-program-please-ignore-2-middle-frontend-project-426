@@ -40,10 +40,24 @@ type SeedProduct = {
   stock: number;
   rating: number;
   specs: Prisma.InputJsonValue;
+  /** null keeps the product without an image so the placeholder is reachable. */
+  imageUrl?: string | null;
+  /** Skip generated "OC"/"White" clones for one-off demo items. */
+  noVariants?: boolean;
+  /**
+   * Re-apply `stock` on every run. Off by default so a restart does not undo
+   * real purchases; on for the products whose stock the demo data relies on.
+   */
+  pinStock?: boolean;
 };
 
 function productImage(seed: string): string {
   return `https://placehold.co/640x480/151c27/3dd6c6/png?text=${encodeURIComponent(seed)}`;
+}
+
+function resolveImageUrl(product: SeedProduct): string | null {
+  if (product.imageUrl !== undefined) return product.imageUrl;
+  return productImage(product.slug.slice(0, 24));
 }
 
 const catalog: SeedProduct[] = [
@@ -390,6 +404,33 @@ const catalog: SeedProduct[] = [
     rating: 4.4,
     specs: { type: "Keyboard", wireless: false, form: "96%" },
   },
+  // Demo edge cases the catalog requirements rely on.
+  {
+    slug: "deepcool-z5-thermal-paste",
+    title: "Deepcool Z5 термопаста 3 г",
+    description: "Расходник для замены термоинтерфейса — фотографии в каталоге пока нет.",
+    price: 690,
+    categorySlug: "cooling",
+    brandSlug: "deepcool",
+    stock: 64,
+    rating: 4.2,
+    specs: { type: "Thermal paste", weight: "3 g", conductivity: "4.5 W/mK" },
+    imageUrl: null,
+    noVariants: true,
+  },
+  {
+    slug: "rtx-4090-founders",
+    title: "NVIDIA GeForce RTX 4090 Founders Edition 24GB",
+    description: "Флагман предыдущего поколения: снят с производства, поставок больше не будет.",
+    price: 219990,
+    categorySlug: "graphics-cards",
+    brandSlug: "nvidia",
+    stock: 0,
+    rating: 4.9,
+    specs: { memory: "24 GB GDDR6X", bus: "384-bit", tdp: "450 W" },
+    pinStock: true,
+    noVariants: true,
+  },
 ];
 
 // Expand catalog to ~90+ items with variants
@@ -401,6 +442,7 @@ function expandCatalog(base: SeedProduct[]): SeedProduct[] {
   ];
 
   for (const item of base) {
+    if (item.noVariants) continue;
     for (const v of variants) {
       if (item.categorySlug === "peripherals" && v.suffix === "oc") continue;
       extras.push({
@@ -413,6 +455,7 @@ function expandCatalog(base: SeedProduct[]): SeedProduct[] {
           : undefined,
         stock: Math.max(1, item.stock + v.stockDelta),
         rating: Math.min(5, Number((item.rating + 0.05).toFixed(1))),
+        pinStock: false,
       });
     }
   }
@@ -476,7 +519,7 @@ async function seedCatalog() {
           description: p.description,
           price: p.price,
           oldPrice: p.oldPrice ?? null,
-          imageUrl: productImage(p.slug.slice(0, 24)),
+          imageUrl: resolveImageUrl(p),
           stock: p.stock,
           rating: p.rating,
           specs: p.specs,
@@ -484,7 +527,8 @@ async function seedCatalog() {
           brandId: brandBySlug[p.brandSlug],
         };
 
-        // On restart: refresh catalog copy only — do not overwrite stock/price/rating.
+        // On restart: refresh catalog copy only — do not overwrite price/rating,
+        // and keep stock as it is unless the demo data pins it.
         return prisma.product.upsert({
           where: { slug: p.slug },
           create: createData,
@@ -495,6 +539,7 @@ async function seedCatalog() {
             specs: createData.specs,
             categoryId: createData.categoryId,
             brandId: createData.brandId,
+            ...(p.pinStock ? { stock: createData.stock } : {}),
           },
         });
       }),
@@ -511,8 +556,12 @@ async function seedCatalog() {
     ),
   );
 
+  const withoutImage = products.filter((p) => resolveImageUrl(p) === null).length;
+  const unavailable = products.filter((p) => p.stock <= 0).length;
+
   console.log(
-    `Seeded ${categoryRecords.length} categories, ${brandRecords.length} brands, ${products.length} products.`,
+    `Seeded ${categoryRecords.length} categories, ${brandRecords.length} brands, ` +
+      `${products.length} products (${withoutImage} without image, ${unavailable} unavailable).`,
   );
 }
 

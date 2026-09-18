@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { addCartItemBodySchema, loginBodySchema, registerBodySchema } from "@/shared/api-contract";
+import {
+  addCartItemBodySchema,
+  listProductsQuerySchema,
+  loginBodySchema,
+  PRODUCTS_PER_PAGE,
+  registerBodySchema,
+} from "@/shared/api-contract";
 
 describe("addCartItemBodySchema", () => {
   it("rejects empty productId", () => {
@@ -50,5 +56,53 @@ describe("loginBodySchema", () => {
     expect(
       loginBodySchema.safeParse({ email: "user@example.com", password: "x" }).success,
     ).toBe(true);
+  });
+});
+
+describe("listProductsQuerySchema", () => {
+  it("applies pagination and sort defaults to an empty query", () => {
+    expect(listProductsQuerySchema.parse({})).toEqual({
+      sort: "newest",
+      page: 1,
+      perPage: PRODUCTS_PER_PAGE,
+    });
+  });
+
+  it("coerces numeric params coming in as strings", () => {
+    const parsed = listProductsQuerySchema.parse({
+      page: "3",
+      perPage: "24",
+      minPrice: "1000",
+      maxPrice: "90000",
+    });
+    expect(parsed).toMatchObject({ page: 3, perPage: 24, minPrice: 1000, maxPrice: 90000 });
+  });
+
+  it("reads availability as a real boolean, not just a truthy string", () => {
+    expect(listProductsQuerySchema.parse({ available: "true" }).available).toBe(true);
+    expect(listProductsQuerySchema.parse({ available: "false" }).available).toBe(false);
+    expect(listProductsQuerySchema.parse({}).available).toBeUndefined();
+  });
+
+  it("rejects an unparseable availability value", () => {
+    expect(listProductsQuerySchema.safeParse({ available: "maybe" }).success).toBe(false);
+  });
+
+  it("rejects a page outside the allowed range", () => {
+    expect(listProductsQuerySchema.safeParse({ page: "0" }).success).toBe(false);
+    expect(listProductsQuerySchema.safeParse({ page: "-1" }).success).toBe(false);
+    expect(listProductsQuerySchema.safeParse({ page: "1.5" }).success).toBe(false);
+  });
+
+  it("rejects a perPage above the app limit", () => {
+    expect(listProductsQuerySchema.safeParse({ perPage: "49" }).success).toBe(false);
+  });
+
+  it("rejects a negative price bound", () => {
+    expect(listProductsQuerySchema.safeParse({ minPrice: "-1" }).success).toBe(false);
+  });
+
+  it("rejects an unknown sort value", () => {
+    expect(listProductsQuerySchema.safeParse({ sort: "title_asc" }).success).toBe(false);
   });
 });

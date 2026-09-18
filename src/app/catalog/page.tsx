@@ -8,30 +8,32 @@ import {
   listProducts,
   type ProductSort,
 } from "@/server/services/catalog";
+import { listProductsQuerySchema } from "@/shared/api-contract";
 
 export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
-function first(value: string | string[] | undefined): string | undefined {
-  return Array.isArray(value) ? value[0] : value;
+/** Drop repeated params so `?page=1&page=2` cannot slip past the schema. */
+function firstValues(sp: Record<string, string | string[] | undefined>) {
+  return Object.fromEntries(
+    Object.entries(sp)
+      .map(([key, value]) => [key, Array.isArray(value) ? value[0] : value])
+      .filter(([, value]) => value !== undefined && value !== ""),
+  );
 }
 
 export default async function CatalogPage({ searchParams }: { searchParams: SearchParams }) {
-  const sp = await searchParams;
-  const category = first(sp.category);
-  const brand = first(sp.brand);
-  const search = first(sp.search);
-  const sort = (first(sp.sort) as ProductSort | undefined) ?? "newest";
-  const page = Number(first(sp.page) ?? "1") || 1;
-  const minPrice = first(sp.minPrice) ? Number(first(sp.minPrice)) : undefined;
-  const maxPrice = first(sp.maxPrice) ? Number(first(sp.maxPrice)) : undefined;
+  const raw = firstValues(await searchParams);
+  const parsed = listProductsQuerySchema.safeParse(raw);
+  // Unparseable params fall back to the schema defaults instead of erroring out.
+  const query = parsed.success ? parsed.data : listProductsQuerySchema.parse({});
 
   let categories: Awaited<ReturnType<typeof listCategories>> = [];
   let brands: Awaited<ReturnType<typeof listBrands>> = [];
   let result: Awaited<ReturnType<typeof listProducts>> = {
     items: [],
-    meta: { page: 1, perPage: 12, total: 0, totalPages: 1 },
+    meta: { page: 1, perPage: query.perPage, total: 0, totalPages: 1 },
   };
   let dbUnavailable = false;
 
@@ -39,49 +41,53 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
     [categories, brands, result] = await Promise.all([
       listCategories(),
       listBrands(),
-      listProducts({ category, brand, search, sort, page, minPrice, maxPrice }),
+      listProducts({ ...query, sort: query.sort as ProductSort }),
     ]);
   } catch {
     dbUnavailable = true;
   }
 
-  const filterParams = {
-    category,
-    brand,
-    search,
-    sort,
-    minPrice: first(sp.minPrice),
-    maxPrice: first(sp.maxPrice),
-  };
-
   return (
     <div data-testid="catalog-page">
       <h1 className="font-display text-3xl font-semibold">Каталог</h1>
       {dbUnavailable ? (
-        <p className="mt-4 border border-warn/40 bg-surface p-4 text-sm text-warn" data-testid="catalog-db-error">
+        <p
+          className="border-warn/40 bg-surface text-warn mt-4 border p-4 text-sm"
+          data-testid="catalog-db-error"
+        >
           База данных недоступна. Поднимите Postgres (`docker compose up -d db`) или укажите
           `DATABASE_URL` в `.env`, затем выполните `npm run db:deploy` и `npm run db:seed`.
         </p>
       ) : (
-        <p className="mt-1 text-sm text-muted">
-          Найдено: <span className="font-mono text-text">{result.meta.total}</span>
+        <p className="text-muted mt-1 text-sm">
+          Найдено:{" "}
+          <span className="text-text font-mono" data-testid="catalog-total">
+            {result.meta.total}
+          </span>
         </p>
       )}
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[240px_1fr]">
-        <Suspense fallback={<div className="border border-border bg-surface p-4 text-muted">Фильтры…</div>}>
+      <div className="mt-8 grid gap-8 lg:grid-cols-[260px_1fr] lg:items-start">
+        <Suspense
+          fallback={
+            <div className="border-border bg-surface text-muted border p-4">Фильтры…</div>
+          }
+        >
           <CatalogFilters categories={categories} brands={brands} />
         </Suspense>
 
         <div>
           {result.items.length === 0 ? (
-            <p className="border border-border bg-surface p-8 text-muted" data-testid="catalog-empty">
+            <p
+              className="border-border bg-surface text-muted border p-8"
+              data-testid="catalog-empty"
+            >
               {dbUnavailable
                 ? "Каталог появится после подключения базы."
-                : "Ничего не найдено. Сбросьте фильтры или измените запрос."}
+                : "Под выбранные фильтры ничего не подошло. Измените условия или сбросьте фильтры."}
             </p>
           ) : (
-            <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" data-testid="product-list">
+            <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" data-testid="catalog-list">
               {result.items.map((product) => (
                 <li key={product.id}>
                   <ProductCard product={product} />
@@ -90,11 +96,9 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
             </ul>
           )}
 
-          <CatalogPagination
-            page={result.meta.page}
-            totalPages={result.meta.totalPages}
-            searchParams={filterParams}
-          />
+          <Suspense fallback={null}>
+            <CatalogPagination page={result.meta.page} totalPages={result.meta.totalPages} />
+          </Suspense>
         </div>
       </div>
     </div>

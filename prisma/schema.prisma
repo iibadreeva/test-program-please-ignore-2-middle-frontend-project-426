@@ -64,7 +64,7 @@ model Product {
   description String
   price       Int
   oldPrice    Int?
-  imageUrl    String
+  imageUrl    String?
   stock       Int        @default(0)
   rating      Float      @default(0)
   specs       Json

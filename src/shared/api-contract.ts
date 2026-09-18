@@ -46,10 +46,12 @@ export type {
   UserPublic,
 };
 
-/** Keep sort values aligned with GET /products in the OpenAPI contract. */
-type ProductSortQuery = NonNullable<
-  NonNullable<Endpoints.get_Catalog_listProducts["parameters"]["query"]>["sort"]
+/** Keep query params aligned with GET /products in the OpenAPI contract. */
+type ListProductsQueryContract = NonNullable<
+  NonNullable<Endpoints.get_Catalog_listProducts["parameters"]["query"]>
 >;
+
+type ProductSortQuery = NonNullable<ListProductsQueryContract["sort"]>;
 
 const PRODUCT_SORT_VALUES = [
   "price_asc",
@@ -57,6 +59,9 @@ const PRODUCT_SORT_VALUES = [
   "rating_desc",
   "newest",
 ] as const satisfies readonly ProductSortQuery[];
+
+export const PRODUCTS_PER_PAGE = 12;
+const MAX_PRODUCTS_PER_PAGE = 48;
 
 /**
  * Query for GET /products with coercion, defaults and app limits.
@@ -68,8 +73,27 @@ export const listProductsQuerySchema = z.object({
   brand: z.string().optional(),
   minPrice: z.coerce.number().int().nonnegative().optional(),
   maxPrice: z.coerce.number().int().nonnegative().optional(),
+  available: z.stringbool().optional(),
   search: z.string().optional(),
   sort: z.enum(PRODUCT_SORT_VALUES).optional().default("newest"),
   page: z.coerce.number().int().positive().optional().default(1),
-  perPage: z.coerce.number().int().positive().max(48).optional().default(12),
+  perPage: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(MAX_PRODUCTS_PER_PAGE)
+    .optional()
+    .default(PRODUCTS_PER_PAGE),
 });
+
+export type ListProductsQuery = z.output<typeof listProductsQuerySchema>;
+
+/** Fails to compile if the schema and the contract query params drift apart. */
+type AssertQueryFieldsMatchContract =
+  keyof ListProductsQuery extends keyof ListProductsQueryContract
+    ? keyof ListProductsQueryContract extends keyof ListProductsQuery
+      ? true
+      : never
+    : never;
+
+export const listProductsQueryMatchesContract: AssertQueryFieldsMatchContract = true;

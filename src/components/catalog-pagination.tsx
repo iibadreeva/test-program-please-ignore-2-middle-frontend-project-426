@@ -1,50 +1,64 @@
+"use client";
+
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { buildCatalogHref, parseFiltersFromParams } from "@/features/catalog/filters-state";
 
 type Props = {
   page: number;
   totalPages: number;
-  searchParams: Record<string, string | undefined>;
 };
 
-export function CatalogPagination({ page, totalPages, searchParams }: Props) {
-  function hrefFor(target: number) {
-    const params = new URLSearchParams();
-    for (const [key, value] of Object.entries(searchParams)) {
-      if (value && key !== "page") params.set(key, value);
-    }
-    if (target > 1) params.set("page", String(target));
-    const qs = params.toString();
-    return qs ? `/catalog?${qs}` : "/catalog";
-  }
+const linkClass = "border-border hover:border-accent border px-3 py-1.5 text-sm transition";
+const disabledClass = "border-border/40 text-muted border px-3 py-1.5 text-sm";
 
-  if (totalPages <= 1) return null;
+export function CatalogPagination({ page, totalPages }: Props) {
+  const searchParams = useSearchParams();
+  const filters = parseFiltersFromParams(searchParams);
+
+  const hasPrev = page > 1;
+  const hasNext = page < totalPages;
 
   return (
-    <nav className="mt-8 flex items-center justify-center gap-3" data-testid="catalog-pagination" aria-label="Пагинация">
-      {page > 1 ? (
+    <nav
+      className="mt-8 flex items-center justify-center gap-3"
+      data-testid="catalog-pagination"
+      aria-label="Пагинация"
+    >
+      {/* The edge controls stay in the DOM but stop being links, so there is no
+          way to navigate to a page outside the existing range. */}
+      {hasPrev ? (
         <Link
-          href={hrefFor(page - 1)}
-          className="border border-border px-3 py-1.5 text-sm hover:border-accent"
-          data-testid="pagination-prev"
+          href={buildCatalogHref(filters, page - 1)}
+          className={linkClass}
+          data-testid="catalog-page-prev"
+          rel="prev"
         >
           Назад
         </Link>
       ) : (
-        <span className="border border-border/40 px-3 py-1.5 text-sm text-muted">Назад</span>
+        <button type="button" className={disabledClass} data-testid="catalog-page-prev" disabled>
+          Назад
+        </button>
       )}
-      <span className="font-mono text-sm text-muted" data-testid="pagination-info">
+
+      <span className="text-muted font-mono text-sm" data-testid="catalog-page-current">
         {page} / {totalPages}
       </span>
-      {page < totalPages ? (
+
+      {hasNext ? (
         <Link
-          href={hrefFor(page + 1)}
-          className="border border-border px-3 py-1.5 text-sm hover:border-accent"
-          data-testid="pagination-next"
+          href={buildCatalogHref(filters, page + 1)}
+          className={linkClass}
+          data-testid="catalog-page-next"
+          rel="next"
         >
           Вперёд
         </Link>
       ) : (
-        <span className="border border-border/40 px-3 py-1.5 text-sm text-muted">Вперёд</span>
+        <button type="button" className={disabledClass} data-testid="catalog-page-next" disabled>
+          Вперёд
+        </button>
       )}
     </nav>
   );

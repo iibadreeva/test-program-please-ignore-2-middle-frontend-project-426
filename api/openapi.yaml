@@ -347,9 +347,17 @@ paths:
             type: integer
             format: int32
           explode: false
+        - name: available
+          in: query
+          required: false
+          description: Оставить только доступные товары
+          schema:
+            type: boolean
+          explode: false
         - name: search
           in: query
           required: false
+          description: Поиск по названию товара
           schema:
             type: string
           explode: false
@@ -662,11 +670,8 @@ components:
     ProductDetail:
       type: object
       required:
-        - description
         - specs
       properties:
-        description:
-          type: string
         specs:
           type: object
           additionalProperties: {}
@@ -690,9 +695,11 @@ components:
         - id
         - slug
         - title
+        - description
         - price
         - imageUrl
         - stock
+        - available
         - rating
         - category
         - brand
@@ -703,6 +710,9 @@ components:
           type: string
         title:
           type: string
+        description:
+          type: string
+          description: Краткое описание для карточки в списке
         price:
           allOf:
             - $ref: '#/components/schemas/Money'
@@ -712,9 +722,14 @@ components:
           $ref: '#/components/schemas/Money'
         imageUrl:
           type: string
+          nullable: true
+          description: null означает, что изображения нет — клиент показывает заглушку
         stock:
           type: integer
           format: int32
+        available:
+          type: boolean
+          description: Товар доступен к покупке (остаток больше нуля)
         rating:
           type: number
           format: double
