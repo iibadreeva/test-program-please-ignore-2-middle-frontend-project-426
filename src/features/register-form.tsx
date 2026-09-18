@@ -17,9 +17,8 @@ export function RegisterForm() {
           type="text"
           name="name"
           autoComplete="name"
-          required
           className="mt-1 w-full border border-border bg-bg px-3 py-2 text-text"
-          data-testid="register-name"
+          data-testid="auth-name"
         />
       </label>
 
@@ -31,7 +30,7 @@ export function RegisterForm() {
           autoComplete="email"
           required
           className="mt-1 w-full border border-border bg-bg px-3 py-2 text-text"
-          data-testid="register-email"
+          data-testid="auth-email"
         />
       </label>
 
@@ -44,13 +43,13 @@ export function RegisterForm() {
           required
           minLength={8}
           className="mt-1 w-full border border-border bg-bg px-3 py-2 text-text"
-          data-testid="register-password"
+          data-testid="auth-password"
         />
         <span className="mt-1 block text-xs text-muted">Не меньше 8 символов</span>
       </label>
 
       {state.message ? (
-        <p className="text-sm text-danger" role="alert" data-testid="register-error">
+        <p className="text-sm text-danger" role="alert" data-testid="auth-error">
           {state.message}
         </p>
       ) : null}
@@ -59,7 +58,7 @@ export function RegisterForm() {
         type="submit"
         disabled={pending}
         className="w-full bg-accent px-5 py-2.5 font-medium text-bg hover:bg-accent-dim disabled:opacity-40"
-        data-testid="register-submit"
+        data-testid="auth-submit"
       >
         {pending ? "Создаём…" : "Зарегистрироваться"}
       </button>

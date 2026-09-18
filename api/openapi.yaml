@@ -78,6 +78,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: The request conflicts with the current state of the server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
       tags:
         - Auth
       requestBody:
@@ -533,8 +539,11 @@ components:
       properties:
         email:
           type: string
+          minLength: 1
+          format: email
         password:
           type: string
+          minLength: 1
     Money:
       type: string
       pattern: ^(0|[1-9][0-9]*)$
@@ -718,14 +727,18 @@ components:
       required:
         - email
         - password
-        - name
       properties:
         email:
           type: string
+          minLength: 1
+          format: email
         password:
           type: string
+          minLength: 8
         name:
           type: string
+          minLength: 2
+          maxLength: 80
     UpdateCartItemBody:
       type: object
       required:

@@ -58,7 +58,7 @@
 - **Frontend:** [React](https://react.dev/), [Next.js](https://nextjs.org/) (App Router, Server Components & Server Actions), [Tailwind CSS](https://tailwindcss.com/), [Lucide Icons](https://lucide.dev/), [Zustand](https://zustand-demo.pmnd.rs/)
 - **Backend & API:** [Next.js Route Handlers](https://nextjs.org/docs/app/building-your-application/routing/route-handlers), [TypeSpec](https://typespec.io/) → [OpenAPI 3.0](https://www.openapis.org/)
 - **База данных & ORM:** [PostgreSQL](https://www.postgresql.org/), [Prisma ORM](https://www.prisma.io/)
-- **Безопасность:** [`jose`](https://github.com/panva/jose) (JWT), [`bcryptjs`](https://github.com/dcodeIO/bcrypt.js) (хеширование паролей)
+- **Безопасность:** серверные сессии в PostgreSQL (httpOnly cookie), [`bcryptjs`](https://github.com/dcodeIO/bcrypt.js) (хеширование паролей)
 - **Мониторинг:** [Sentry](https://sentry.io/) (`@sentry/nextjs` — фронтенд и бэкенд)
 - **Тестирование & CI:** [Vitest](https://vitest.dev/), [Playwright](https://playwright.dev/), [GitHub Actions](https://docs.github.com/en/actions)
 - **Инфраструктура:** [Docker](https://www.docker.com/), [Docker Compose](https://docs.docker.com/compose/) (Multi-stage build), [Render](https://render.com/) (деплой и managed PostgreSQL)
@@ -73,7 +73,6 @@
 | :----------------------- | :----------: | :----------------------------------------------------------------------------------- |
 | `PORT`                   |      ❌      | Порт HTTP-сервера (по умолчанию `3000`)                                              |
 | `DATABASE_URL`           |      ✅      | Строка подключения к PostgreSQL (`postgresql://user:pass@host:5432/db`)              |
-| `JWT_SECRET`             |      ❌      | Ключ подписи JWT (≥ 16 симв.). Если не задан — безопасно выводится из `DATABASE_URL` |
 | `BASE_URL`               |      ❌      | Базовый URL для Playwright (`http://localhost:3000`). В CI/проверке Хекслета задаётся снаружи |
 | `NEXT_PUBLIC_SENTRY_DSN` |      ❌\*     | DSN проекта Sentry (фронтенд + fallback для бэкенда)                                 |
 | `SENTRY_DSN`             |      ❌      | Опциональный DSN только для сервера (иначе берётся `NEXT_PUBLIC_SENTRY_DSN`)         |

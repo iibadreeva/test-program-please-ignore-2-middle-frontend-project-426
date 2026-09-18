@@ -32,10 +32,11 @@ export async function registerAction(
   formData: FormData,
 ): Promise<AuthFormState> {
   try {
+    const nameRaw = String(formData.get("name") ?? "").trim();
     await registerUser({
       email: String(formData.get("email") ?? ""),
       password: String(formData.get("password") ?? ""),
-      name: String(formData.get("name") ?? ""),
+      ...(nameRaw ? { name: nameRaw } : {}),
     });
     revalidatePath("/", "layout");
     redirect("/account");

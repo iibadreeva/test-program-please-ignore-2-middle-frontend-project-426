@@ -34,32 +34,43 @@ export async function Header() {
             <span className="hidden sm:inline">Корзина</span>
             <CartBadge />
           </Link>
-          <Link
-            href="/account"
-            className="inline-flex items-center gap-1.5 px-2 py-1 text-sm text-muted transition hover:text-text"
-            data-testid="nav-account"
-          >
-            <User className="size-4" aria-hidden />
-            <span className="hidden sm:inline">{user ? user.name.split(" ")[0] : "Кабинет"}</span>
-          </Link>
           {user ? (
-            <form action={logoutAction}>
-              <button
-                type="submit"
-                className="ml-1 border border-border px-3 py-1.5 text-sm transition hover:border-accent"
-                data-testid="nav-logout"
+            <>
+              <Link
+                href="/account"
+                className="inline-flex items-center gap-1.5 px-2 py-1 text-sm text-muted transition hover:text-text"
+                data-testid="nav-account"
               >
-                Выйти
-              </button>
-            </form>
+                <User className="size-4" aria-hidden />
+                <span className="hidden sm:inline">{user.name.split(" ")[0]}</span>
+              </Link>
+              <form action={logoutAction}>
+                <button
+                  type="submit"
+                  className="ml-1 border border-border px-3 py-1.5 text-sm transition hover:border-accent"
+                  data-testid="nav-signout"
+                >
+                  Выйти
+                </button>
+              </form>
+            </>
           ) : (
-            <Link
-              href="/login"
-              className="ml-1 border border-border px-3 py-1.5 text-sm transition hover:border-accent"
-              data-testid="nav-login"
-            >
-              Войти
-            </Link>
+            <>
+              <Link
+                href="/login"
+                className="ml-1 border border-border px-3 py-1.5 text-sm transition hover:border-accent"
+                data-testid="nav-signin"
+              >
+                Войти
+              </Link>
+              <Link
+                href="/register"
+                className="border border-border px-3 py-1.5 text-sm transition hover:border-accent"
+                data-testid="nav-signup"
+              >
+                Регистрация
+              </Link>
+            </>
           )}
         </nav>
       </div>

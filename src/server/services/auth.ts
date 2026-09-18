@@ -1,4 +1,4 @@
-import { z } from "zod";
+import type { z } from "zod";
 import { prisma } from "@/server/db";
 import { hashPassword, verifyPassword } from "@/server/auth/password";
 import {
@@ -11,24 +11,25 @@ import {
 import { mergeGuestCartIntoUser } from "@/server/services/cart";
 import { loginBodySchema, registerBodySchema } from "@/shared/api-contract";
 
-export const registerSchema = registerBodySchema.extend({
-  email: z.string().trim().email("Некорректный email"),
-  password: z.string().min(8, "Пароль не короче 8 символов"),
-  name: z.string().trim().min(2, "Имя не короче 2 символов").max(80),
-});
+export const registerSchema = registerBodySchema;
+export const loginSchema = loginBodySchema;
 
-export const loginSchema = loginBodySchema.extend({
-  email: z.string().trim().email("Некорректный email"),
-  password: z.string().min(1, "Введите пароль"),
-});
+export type RegisterInput = z.input<typeof registerSchema>;
+export type LoginInput = z.input<typeof loginSchema>;
 
 function toPublic(user: { id: string; email: string; name: string }): PublicUser {
   return { id: user.id, email: user.email, name: user.name };
 }
 
-export async function registerUser(input: z.infer<typeof registerSchema>): Promise<PublicUser> {
+function nameFromEmail(email: string): string {
+  const local = email.split("@")[0]?.trim() || "user";
+  return local.length >= 2 ? local.slice(0, 80) : `user-${local}`;
+}
+
+export async function registerUser(input: RegisterInput): Promise<PublicUser> {
   const data = registerSchema.parse(input);
-  const email = data.email.toLowerCase();
+  const email = data.email.trim().toLowerCase();
+  const name = data.name?.trim() || nameFromEmail(email);
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
@@ -36,13 +37,26 @@ export async function registerUser(input: z.infer<typeof registerSchema>): Promi
   }
 
   const passwordHash = await hashPassword(data.password);
-  const user = await prisma.user.create({
-    data: {
-      email,
-      name: data.name,
-      passwordHash,
-    },
-  });
+  let user;
+  try {
+    user = await prisma.user.create({
+      data: {
+        email,
+        name,
+        passwordHash,
+      },
+    });
+  } catch (error) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code: string }).code === "P2002"
+    ) {
+      throw new AuthError("CONFLICT", "Пользователь с таким email уже есть");
+    }
+    throw error;
+  }
 
   const publicUser = toPublic(user);
   await createSession(publicUser);
@@ -50,9 +64,9 @@ export async function registerUser(input: z.infer<typeof registerSchema>): Promi
   return publicUser;
 }
 
-export async function loginUser(input: z.infer<typeof loginSchema>): Promise<PublicUser> {
+export async function loginUser(input: LoginInput): Promise<PublicUser> {
   const data = loginSchema.parse(input);
-  const email = data.email.toLowerCase();
+  const email = data.email.trim().toLowerCase();
 
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) {

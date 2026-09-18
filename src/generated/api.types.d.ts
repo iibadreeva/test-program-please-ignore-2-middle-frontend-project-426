@@ -68,7 +68,7 @@ export namespace Schemas {
   export type PaginationMeta = { page: number; perPage: number; total: number; totalPages: number };
   export type ProductDetail = ProductSummary & { description: string; specs: Record<string, unknown> };
   export type ProductListResponse = { items: Array<ProductSummary>; meta: PaginationMeta };
-  export type RegisterBody = { email: string; password: string; name: string };
+  export type RegisterBody = { email: string; password: string; name?: string };
   export type UpdateCartItemBody = {
     /**
      * Количество единиц товара
@@ -117,7 +117,7 @@ export namespace Endpoints {
     parameters: {
       body: Schemas.RegisterBody;
     };
-    responses: { 201: Schemas.UserPublic; 400: Schemas.ErrorResponse };
+    responses: { 201: Schemas.UserPublic; 400: Schemas.ErrorResponse; 409: Schemas.ErrorResponse };
   };
   export type get_Catalog_listBrands = {
     method: "GET";

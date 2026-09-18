@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE } from "@/shared/constants";
-import { verifySessionToken } from "@/server/auth/jwt";
 
 const PROTECTED_PREFIXES = ["/account", "/checkout"];
 
@@ -14,9 +13,7 @@ export async function middleware(request: NextRequest) {
   }
 
   const token = request.cookies.get(SESSION_COOKIE)?.value;
-  const session = token ? await verifySessionToken(token) : null;
-
-  if (!session) {
+  if (!token) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set("next", pathname);

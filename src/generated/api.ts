@@ -67,7 +67,7 @@ export type ErrorResponse = __TypedOpenapi.Schemas.ErrorResponse;
 export const ErrorResponse = z.strictObject({ error: ErrorBody });
 
 export type LoginBody = __TypedOpenapi.Schemas.LoginBody;
-export const LoginBody = z.strictObject({ email: z.string(), password: z.string() });
+export const LoginBody = z.strictObject({ email: z.email().min(1), password: z.string().min(1) });
 
 export type PickupPoint = __TypedOpenapi.Schemas.PickupPoint;
 export const PickupPoint = z.strictObject({ id: z.string(), name: z.string(), address: z.string() });
@@ -116,7 +116,11 @@ export type ProductListResponse = __TypedOpenapi.Schemas.ProductListResponse;
 export const ProductListResponse = z.strictObject({ items: z.array(ProductSummary), meta: PaginationMeta });
 
 export type RegisterBody = __TypedOpenapi.Schemas.RegisterBody;
-export const RegisterBody = z.strictObject({ email: z.string(), password: z.string(), name: z.string() });
+export const RegisterBody = z.strictObject({
+  email: z.email().min(1),
+  password: z.string().min(8),
+  name: z.string().min(2).max(80).optional(),
+});
 
 export type UpdateCartItemBody = __TypedOpenapi.Schemas.UpdateCartItemBody;
 export const UpdateCartItemBody = z.strictObject({ quantity: z.number().int().min(1) });
@@ -164,7 +168,7 @@ export const post_Auth_register = {
   requestFormat: z.literal("json"),
   responseFormat: z.literal("json"),
   parameters: { body: RegisterBody },
-  responses: { 201: UserPublic, 400: ErrorResponse },
+  responses: { 201: UserPublic, 400: ErrorResponse, 409: ErrorResponse },
 };
 
 export type get_Catalog_listBrands = __TypedOpenapi.Endpoints.get_Catalog_listBrands;

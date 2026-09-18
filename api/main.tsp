@@ -124,13 +124,24 @@ model Order {
 }
 
 model RegisterBody {
+  @format("email")
+  @minLength(1)
   email: string;
+
+  @minLength(8)
   password: string;
-  name: string;
+
+  @minLength(2)
+  @maxLength(80)
+  name?: string;
 }
 
 model LoginBody {
+  @format("email")
+  @minLength(1)
   email: string;
+
+  @minLength(1)
   password: string;
 }
 
@@ -168,7 +179,7 @@ interface Auth {
     @statusCode statusCode: 201;
     @body body: UserPublic;
   } | {
-    @statusCode statusCode: 400;
+    @statusCode statusCode: 400 | 409;
     @body body: ErrorResponse;
   };
 

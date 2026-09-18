@@ -1,14 +1,13 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { logoutAction } from "@/features/auth-actions";
-import { getCurrentUser } from "@/server/auth/session";
+import { requireUser } from "@/server/auth/session";
 
 export const dynamic = "force-dynamic";
 
 export default async function AccountPage() {
-  const user = await getCurrentUser();
-  if (!user) {
-    return null;
-  }
+  const user = await requireUser().catch(() => null);
+  if (!user) redirect("/login?next=/account");
 
   return (
     <div data-testid="account-page" className="space-y-8">
@@ -46,7 +45,7 @@ export default async function AccountPage() {
         <button
           type="submit"
           className="border border-border px-4 py-2 text-sm hover:border-danger hover:text-danger"
-          data-testid="logout-button"
+          data-testid="account-signout"
         >
           Выйти
         </button>

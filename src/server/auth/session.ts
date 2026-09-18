@@ -1,6 +1,8 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
+import { prisma } from "@/server/db";
+import { generateSessionToken, hashToken } from "@/server/auth/session-token";
 import { SESSION_COOKIE, SESSION_COOKIE_MAX_AGE } from "@/shared/constants";
-import { signSessionToken, verifySessionToken, type SessionPayload } from "@/server/auth/jwt";
 
 export type PublicUser = {
   id: string;
@@ -9,10 +11,18 @@ export type PublicUser = {
 };
 
 export async function createSession(user: PublicUser): Promise<void> {
-  const token = await signSessionToken(
-    { sub: user.id, email: user.email, name: user.name },
-    SESSION_COOKIE_MAX_AGE,
-  );
+  const token = generateSessionToken();
+  const tokenHash = hashToken(token);
+  const expiresAt = new Date(Date.now() + SESSION_COOKIE_MAX_AGE * 1000);
+
+  await prisma.session.create({
+    data: {
+      tokenHash,
+      userId: user.id,
+      expiresAt,
+    },
+  });
+
   const jar = await cookies();
   jar.set(SESSION_COOKIE, token, {
     httpOnly: true,
@@ -25,25 +35,41 @@ export async function createSession(user: PublicUser): Promise<void> {
 
 export async function destroySession(): Promise<void> {
   const jar = await cookies();
+  const token = jar.get(SESSION_COOKIE)?.value;
+  if (token) {
+    const tokenHash = hashToken(token);
+    await prisma.session.deleteMany({ where: { tokenHash } });
+  }
   jar.delete(SESSION_COOKIE);
 }
 
-export async function readSessionPayload(): Promise<SessionPayload | null> {
+async function loadCurrentUser(): Promise<PublicUser | null> {
   const jar = await cookies();
   const token = jar.get(SESSION_COOKIE)?.value;
   if (!token) return null;
-  return verifySessionToken(token);
-}
 
-export async function getCurrentUser(): Promise<PublicUser | null> {
-  const payload = await readSessionPayload();
-  if (!payload) return null;
+  const tokenHash = hashToken(token);
+  const session = await prisma.session.findUnique({
+    where: { tokenHash },
+    include: { user: true },
+  });
+
+  if (!session) return null;
+
+  if (session.expiresAt.getTime() <= Date.now()) {
+    await prisma.session.delete({ where: { id: session.id } }).catch(() => undefined);
+    return null;
+  }
+
   return {
-    id: payload.sub,
-    email: payload.email,
-    name: payload.name,
+    id: session.user.id,
+    email: session.user.email,
+    name: session.user.name,
   };
 }
+
+/** Deduplicates layout + page reads within one request. */
+export const getCurrentUser = cache(loadCurrentUser);
 
 export async function requireUser(): Promise<PublicUser> {
   const user = await getCurrentUser();
