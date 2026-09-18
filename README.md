@@ -1,6 +1,7 @@
 # 🛒 HexParts — Интернет-магазин комплектующих для ПК
 
 [![hexlet-check](https://github.com/iibadreeva/test-program-please-ignore-2-middle-frontend-project-426/actions/workflows/hexlet-check.yml/badge.svg)](https://github.com/iibadreeva/test-program-please-ignore-2-middle-frontend-project-426/actions)
+[![CI](https://github.com/iibadreeva/test-program-please-ignore-2-middle-frontend-project-426/actions/workflows/ci.yml/badge.svg)](https://github.com/iibadreeva/test-program-please-ignore-2-middle-frontend-project-426/actions/workflows/ci.yml)
 ![Next.js](https://img.shields.io/badge/Next.js_15-black?style=flat-square&logo=next.js)
 ![React](https://img.shields.io/badge/React_19-20232A?style=flat-square&logo=react&logoColor=61DAFB)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
@@ -73,6 +74,7 @@
 | `PORT`                   |      ❌      | Порт HTTP-сервера (по умолчанию `3000`)                                              |
 | `DATABASE_URL`           |      ✅      | Строка подключения к PostgreSQL (`postgresql://user:pass@host:5432/db`)              |
 | `JWT_SECRET`             |      ❌      | Ключ подписи JWT (≥ 16 симв.). Если не задан — безопасно выводится из `DATABASE_URL` |
+| `BASE_URL`               |      ❌      | Базовый URL для Playwright (`http://localhost:3000`). В CI/проверке Хекслета задаётся снаружи |
 | `NEXT_PUBLIC_SENTRY_DSN` |      ❌\*     | DSN проекта Sentry (фронтенд + fallback для бэкенда)                                 |
 | `SENTRY_DSN`             |      ❌      | Опциональный DSN только для сервера (иначе берётся `NEXT_PUBLIC_SENTRY_DSN`)         |
 | `SENTRY_AUTH_TOKEN`      |      ❌\*     | Токен загрузки source maps при `next build` (не коммитить)                           |
@@ -159,6 +161,7 @@ docker compose up --build
 ### 🏗️ Архитектура проекта
 
 ```text
+├── e2e/                  # Браузерные smoke/e2e-тесты Playwright
 ├── api/                  # TypeSpec спецификации API и сгенерированный openapi.yaml
 ├── prisma/               # Схема БД, SQL-миграции и сид-скрипты
 ├── public/               # Статические ассеты и изображения
@@ -169,6 +172,7 @@ docker compose up --build
 │   └── server/           # Серверный слой: сервисы, Prisma-клиент, JWT и авторизация
 ├── Dockerfile            # Многоэтапная оптимизированная сборка контейнера
 ├── docker-compose.yml    # Конфигурация локального окружения с PostgreSQL
+├── playwright.config.ts  # Конфиг Playwright (baseURL из BASE_URL)
 └── docker-entrypoint.sh  # Точка входа контейнера (healthcheck БД, миграции, сид, старт)
 ```
 

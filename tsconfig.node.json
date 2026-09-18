@@ -11,6 +11,6 @@
     "resolveJsonModule": true,
     "types": ["node"]
   },
-  "include": ["prisma/**/*.ts"],
+  "include": ["prisma/**/*.ts", "playwright.config.ts", "e2e/**/*.ts"],
   "exclude": ["node_modules"]
 }
