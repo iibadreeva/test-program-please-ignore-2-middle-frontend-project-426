@@ -15,6 +15,13 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 # Placeholder only for `next build` page collection — real URL comes at runtime.
 ENV DATABASE_URL="postgresql://build:build@127.0.0.1:5432/build"
+# NEXT_PUBLIC_* values are inlined into the client bundle by `next build`, so the
+# Sentry DSN must be present at build time, not just at runtime.
+ARG NEXT_PUBLIC_SENTRY_DSN=""
+ENV NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN
+# Optional: enables source map upload during the build.
+ARG SENTRY_AUTH_TOKEN=""
+ENV SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN
 RUN npx prisma generate
 RUN npm run seed:build
 RUN npm run build
