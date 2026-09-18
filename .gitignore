@@ -52,3 +52,6 @@ next-env.d.ts
 
 # typespec
 api/tsp-output/
+
+# Sentry Config File
+.env.sentry-build-plugin

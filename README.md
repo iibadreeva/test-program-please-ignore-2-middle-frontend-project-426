@@ -11,6 +11,14 @@
 
 **HexParts** — современный полнофункциональный интернет-магазин компьютерных комплектующих на **Next.js (App Router)**. Включает интерактивный каталог товаров с гибкими фильтрами, корзину, оформление заказов с выбором доставки или самовывоза, личный кабинет и полноценный REST API поверх Prisma ORM и PostgreSQL.
 
+### 🔗 Демо
+
+**Приложение развёрнуто на Render:** [test-program-please-ignore-2-middle.onrender.com](https://test-program-please-ignore-2-middle.onrender.com/)
+
+- 🩺 **Health Check:** [/api/health](https://test-program-please-ignore-2-middle.onrender.com/api/health)
+
+> ⏳ Сервис работает на бесплатном тарифе и засыпает при простое — первый запрос после паузы может занять до минуты.
+
 > 🎓 **Учебный проект Хекслета**: [Программа «Фронтенд-разработчик (Middle)»](https://ru.hexlet.io/programs/test-program-please-ignore-2-middle-frontend)
 
 ---
@@ -32,9 +40,9 @@
 
 Реализация: `src/app/api/health/route.ts`.
 
-| Результат | HTTP | Тело | Когда |
-| :--- | :---: | :--- | :--- |
-| ОК | `200` | `{ "status": "ok" }` | `SELECT 1` к БД прошёл успешно |
+| Результат     | HTTP  | Тело                                               | Когда                          |
+| :------------ | :---: | :------------------------------------------------- | :----------------------------- |
+| ОК            | `200` | `{ "status": "ok" }`                               | `SELECT 1` к БД прошёл успешно |
 | БД недоступна | `503` | ошибка `INTERNAL_ERROR` («База данных недоступна») | нет соединения / ошибка Prisma |
 
 - Ответ **не кэшируется** (`dynamic = "force-dynamic"`) — каждый запрос выполняется заново.
@@ -46,12 +54,12 @@
 
 ### 🛠️ Стек технологий
 
-* **Frontend:** React, Next.js (App Router, Server Components & Server Actions), Tailwind CSS, Lucide Icons, Zustand
-* **Backend & API:** Next.js Route Handlers, TypeSpec → OpenAPI 3.0
-* **База данных & ORM:** PostgreSQL, Prisma ORM
-* **Безопасность:** `jose` (JWT), `bcryptjs` (хеширование паролей)
-* **Тестирование & CI:** Vitest, Playwright, GitHub Actions
-* **Инфраструктура:** Docker, Docker Compose (Multi-stage build)
+- **Frontend:** [React](https://react.dev/), [Next.js](https://nextjs.org/) (App Router, Server Components & Server Actions), [Tailwind CSS](https://tailwindcss.com/), [Lucide Icons](https://lucide.dev/), [Zustand](https://zustand-demo.pmnd.rs/)
+- **Backend & API:** [Next.js Route Handlers](https://nextjs.org/docs/app/building-your-application/routing/route-handlers), [TypeSpec](https://typespec.io/) → [OpenAPI 3.0](https://www.openapis.org/)
+- **База данных & ORM:** [PostgreSQL](https://www.postgresql.org/), [Prisma ORM](https://www.prisma.io/)
+- **Безопасность:** [`jose`](https://github.com/panva/jose) (JWT), [`bcryptjs`](https://github.com/dcodeIO/bcrypt.js) (хеширование паролей)
+- **Тестирование & CI:** [Vitest](https://vitest.dev/), [Playwright](https://playwright.dev/), [GitHub Actions](https://docs.github.com/en/actions)
+- **Инфраструктура:** [Docker](https://www.docker.com/), [Docker Compose](https://docs.docker.com/compose/) (Multi-stage build)
 
 ---
 
@@ -59,11 +67,11 @@
 
 Приложение упаковывается в единый Docker-образ и обслуживает UI и REST API (`/api/*`) на одном порту через `0.0.0.0:$PORT`.
 
-| Переменная | Обязательная | Описание / Пример |
-| :--- | :---: | :--- |
-| `PORT` | ❌ | Порт HTTP-сервера (по умолчанию `3000`) |
-| `DATABASE_URL` | ✅ | Строка подключения к PostgreSQL (`postgresql://user:pass@host:5432/db`) |
-| `JWT_SECRET` | ❌ | Ключ подписи JWT (≥ 16 симв.). Если не задан — безопасно выводится из `DATABASE_URL` |
+| Переменная     | Обязательная | Описание / Пример                                                                    |
+| :------------- | :----------: | :----------------------------------------------------------------------------------- |
+| `PORT`         |      ❌      | Порт HTTP-сервера (по умолчанию `3000`)                                              |
+| `DATABASE_URL` |      ✅      | Строка подключения к PostgreSQL (`postgresql://user:pass@host:5432/db`)              |
+| `JWT_SECRET`   |      ❌      | Ключ подписи JWT (≥ 16 симв.). Если не задан — безопасно выводится из `DATABASE_URL` |
 
 > ℹ️ **Автоматические миграции и сид:**  
 > При старте контейнера скрипт `docker-entrypoint.sh` автоматически дожидается готовности PostgreSQL, применяет миграции (`prisma migrate deploy`) и выполняет идемпотентное наполнение каталога.
@@ -94,17 +102,20 @@ docker compose up --build
 #### Вариант 2: Локальная разработка
 
 1. **Установка зависимостей и настройка окружения:**
+
    ```bash
    npm install
    cp .env.example .env
    ```
 
 2. **Запуск базы данных в Docker:**
+
    ```bash
    docker compose up -d db
    ```
 
 3. **Применение миграций и сидирование данных:**
+
    ```bash
    npm run db:deploy
    npm run db:seed
@@ -121,19 +132,19 @@ docker compose up --build
 
 ### 📜 Доступные npm-скрипты
 
-| Скрипт | Описание |
-| :--- | :--- |
-| `npm run dev` | Запуск сервера разработки с Hot-Reload |
-| `npm run build` | Production-сборка приложения Next.js |
-| `npm start` | Запуск собранного production-сервера |
-| `npm run typecheck` | Проверка типов TypeScript (фронтенд + скрипты) |
-| `npm run db:deploy` | Применение миграций Prisma к базе данных |
-| `npm run db:migrate` | Создание новой миграции в процессе разработки |
-| `npm run db:seed` | Идемпотентное наполнение каталога тестовыми данными |
-| `npm run seed:build` | Сборка standalone-скрипта сида для Docker-образа |
+| Скрипт                | Описание                                                        |
+| :-------------------- | :-------------------------------------------------------------- |
+| `npm run dev`         | Запуск сервера разработки с Hot-Reload                          |
+| `npm run build`       | Production-сборка приложения Next.js                            |
+| `npm start`           | Запуск собранного production-сервера                            |
+| `npm run typecheck`   | Проверка типов TypeScript (фронтенд + скрипты)                  |
+| `npm run db:deploy`   | Применение миграций Prisma к базе данных                        |
+| `npm run db:migrate`  | Создание новой миграции в процессе разработки                   |
+| `npm run db:seed`     | Идемпотентное наполнение каталога тестовыми данными             |
+| `npm run seed:build`  | Сборка standalone-скрипта сида для Docker-образа                |
 | `npm run tsp:compile` | Компиляция спецификации TypeSpec в OpenAPI (`api/openapi.yaml`) |
-| `npm test` | Запуск модульных тестов Vitest |
-| `npm run test:e2e` | Запуск сквозных E2E-тестов Playwright |
+| `npm test`            | Запуск модульных тестов Vitest                                  |
+| `npm run test:e2e`    | Запуск сквозных E2E-тестов Playwright                           |
 
 ---
 
