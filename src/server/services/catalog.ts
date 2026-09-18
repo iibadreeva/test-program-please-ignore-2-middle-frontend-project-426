@@ -1,5 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/server/db";
+import { toMoney } from "@/shared/money";
+import type { ProductDetail, ProductSummary } from "@/shared/api-contract";
 
 export type ProductSort = "price_asc" | "price_desc" | "rating_desc" | "newest";
 
@@ -21,18 +23,18 @@ const productInclude = {
 
 export type ProductWithRelations = Prisma.ProductGetPayload<{ include: typeof productInclude }>;
 
-export function serializeProduct(product: ProductWithRelations) {
+export function serializeProduct(product: ProductWithRelations): ProductDetail {
   return {
     id: product.id,
     slug: product.slug,
     title: product.title,
     description: product.description,
-    priceCents: product.priceCents,
-    oldPriceCents: product.oldPriceCents,
+    price: toMoney(product.price),
+    oldPrice: product.oldPrice != null ? toMoney(product.oldPrice) : undefined,
     imageUrl: product.imageUrl,
     stock: product.stock,
     rating: product.rating,
-    specs: product.specs,
+    specs: product.specs as Record<string, unknown>,
     category: {
       id: product.category.id,
       slug: product.category.slug,
@@ -46,13 +48,13 @@ export function serializeProduct(product: ProductWithRelations) {
   };
 }
 
-export function serializeProductSummary(product: ProductWithRelations) {
+export function serializeProductSummary(product: ProductWithRelations): ProductSummary {
   return {
     id: product.id,
     slug: product.slug,
     title: product.title,
-    priceCents: product.priceCents,
-    oldPriceCents: product.oldPriceCents,
+    price: toMoney(product.price),
+    oldPrice: product.oldPrice != null ? toMoney(product.oldPrice) : undefined,
     imageUrl: product.imageUrl,
     stock: product.stock,
     rating: product.rating,
@@ -95,9 +97,9 @@ export async function listProducts(input: ListProductsInput = {}) {
     where.brand = { slug: input.brand };
   }
   if (input.minPrice != null || input.maxPrice != null) {
-    where.priceCents = {};
-    if (input.minPrice != null) where.priceCents.gte = input.minPrice;
-    if (input.maxPrice != null) where.priceCents.lte = input.maxPrice;
+    where.price = {};
+    if (input.minPrice != null) where.price.gte = input.minPrice;
+    if (input.maxPrice != null) where.price.lte = input.maxPrice;
   }
   if (input.search?.trim()) {
     const q = input.search.trim();
@@ -109,9 +111,9 @@ export async function listProducts(input: ListProductsInput = {}) {
 
   const orderBy: Prisma.ProductOrderByWithRelationInput =
     sort === "price_asc"
-      ? { priceCents: "asc" }
+      ? { price: "asc" }
       : sort === "price_desc"
-        ? { priceCents: "desc" }
+        ? { price: "desc" }
         : sort === "rating_desc"
           ? { rating: "desc" }
           : { createdAt: "desc" };

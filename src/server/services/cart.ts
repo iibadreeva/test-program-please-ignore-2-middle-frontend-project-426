@@ -2,6 +2,8 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/server/db";
 import { clearCartIdCookie, getCartIdFromCookie, setCartIdCookie } from "@/server/cart-cookie";
 import { serializeProductSummary } from "@/server/services/catalog";
+import { fromMoney, toMoney } from "@/shared/money";
+import type { Cart as SerializedCart } from "@/shared/api-contract";
 
 const cartInclude = {
   items: {
@@ -19,27 +21,28 @@ const cartInclude = {
 
 type CartWithItems = Prisma.CartGetPayload<{ include: typeof cartInclude }>;
 
-export function serializeCart(cart: CartWithItems) {
+export function serializeCart(cart: CartWithItems): SerializedCart {
   const items = cart.items.map((item) => {
     const product = serializeProductSummary(item.product);
+    const lineTotal = fromMoney(product.price) * item.quantity;
     return {
       id: item.id,
       productId: item.productId,
       quantity: item.quantity,
       product,
-      lineTotalCents: product.priceCents * item.quantity,
+      lineTotal: toMoney(lineTotal),
     };
   });
 
   return {
     id: cart.id,
     items,
-    totalCents: items.reduce((sum, item) => sum + item.lineTotalCents, 0),
+    total: toMoney(items.reduce((sum, item) => sum + fromMoney(item.lineTotal), 0)),
     itemsCount: items.reduce((sum, item) => sum + item.quantity, 0),
   };
 }
 
-export type SerializedCart = ReturnType<typeof serializeCart>;
+export type { SerializedCart };
 
 async function loadCart(cartId: string) {
   return prisma.cart.findUnique({
@@ -49,7 +52,7 @@ async function loadCart(cartId: string) {
 }
 
 function emptyCartView(id = "empty"): SerializedCart {
-  return { id, items: [], totalCents: 0, itemsCount: 0 };
+  return { id, items: [], total: toMoney(0), itemsCount: 0 };
 }
 
 /** Read-only: never creates a cart or writes cookies (safe in RSC). */

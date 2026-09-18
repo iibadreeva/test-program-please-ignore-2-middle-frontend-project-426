@@ -6,6 +6,7 @@ import {
   updateCartItemAction,
 } from "@/features/cart-actions";
 import type { SerializedCart } from "@/server/services/cart";
+import { fromMoney, toMoney } from "@/shared/money";
 
 export type CartStoreState = {
   cart: SerializedCart;
@@ -19,15 +20,21 @@ export type CartStoreState = {
 };
 
 function emptyCart(): SerializedCart {
-  return { id: "empty", items: [], totalCents: 0, itemsCount: 0 };
+  return { id: "empty", items: [], total: toMoney(0), itemsCount: 0 };
 }
 
 function withTotals(items: SerializedCart["items"], id: string): SerializedCart {
+  const nextItems = items.map((item) => ({
+    ...item,
+    lineTotal: toMoney(fromMoney(item.product.price) * item.quantity),
+  }));
   return {
     id,
-    items,
-    totalCents: items.reduce((sum, item) => sum + item.product.priceCents * item.quantity, 0),
-    itemsCount: items.reduce((sum, item) => sum + item.quantity, 0),
+    items: nextItems,
+    total: toMoney(
+      nextItems.reduce((sum, item) => sum + fromMoney(item.lineTotal), 0),
+    ),
+    itemsCount: nextItems.reduce((sum, item) => sum + item.quantity, 0),
   };
 }
 

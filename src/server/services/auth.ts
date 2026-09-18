@@ -9,14 +9,15 @@ import {
   type PublicUser,
 } from "@/server/auth/session";
 import { mergeGuestCartIntoUser } from "@/server/services/cart";
+import { loginBodySchema, registerBodySchema } from "@/shared/api-contract";
 
-export const registerSchema = z.object({
+export const registerSchema = registerBodySchema.extend({
   email: z.string().trim().email("Некорректный email"),
   password: z.string().min(8, "Пароль не короче 8 символов"),
   name: z.string().trim().min(2, "Имя не короче 2 символов").max(80),
 });
 
-export const loginSchema = z.object({
+export const loginSchema = loginBodySchema.extend({
   email: z.string().trim().email("Некорректный email"),
   password: z.string().min(1, "Введите пароль"),
 });

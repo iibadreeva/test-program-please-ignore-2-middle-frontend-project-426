@@ -102,16 +102,16 @@ export default async function AccountOrderDetailPage({ params, searchParams }: P
             <div>
               <p className="font-medium">{item.titleSnapshot}</p>
               <p className="mt-1 font-mono text-sm text-muted">
-                {formatPrice(item.priceCentsSnapshot)} × {item.quantity}
+                {formatPrice(item.priceSnapshot)} × {item.quantity}
               </p>
             </div>
-            <p className="font-mono text-accent">{formatPrice(item.lineTotalCents)}</p>
+            <p className="font-mono text-accent">{formatPrice(item.lineTotal)}</p>
           </li>
         ))}
       </ul>
 
       <p className="text-right font-mono text-2xl text-accent" data-testid="order-total">
-        {formatPrice(order.totalCents)}
+        {formatPrice(order.total)}
       </p>
     </div>
   );

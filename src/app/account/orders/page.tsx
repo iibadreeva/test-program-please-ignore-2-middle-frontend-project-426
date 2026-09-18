@@ -45,7 +45,7 @@ export default async function AccountOrdersPage() {
                   </p>
                 </div>
                 <p className="font-mono text-accent" data-testid="order-list-total">
-                  {formatPrice(order.totalCents)}
+                  {formatPrice(order.total)}
                 </p>
               </Link>
             </li>

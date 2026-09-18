@@ -153,6 +153,9 @@ docker compose up --build
 | `npm run db:seed`     | Идемпотентное наполнение каталога тестовыми данными             |
 | `npm run seed:build`  | Сборка standalone-скрипта сида для Docker-образа                |
 | `npm run tsp:compile` | Компиляция спецификации TypeSpec в OpenAPI (`api/openapi.yaml`) |
+| `npm run api:types`   | Генерация Zod-схем и типов из OpenAPI (`src/generated/`)        |
+| `npm run api:gen`     | Полный цикл: TypeSpec → OpenAPI → типы/схемы                    |
+| `npm run api:check`   | Проверка, что сгенерированные артефакты не рассинхронизированы  |
 | `npm test`            | Запуск модульных тестов Vitest                                  |
 | `npm run test:e2e`    | Запуск сквозных E2E-тестов Playwright                           |
 
@@ -168,8 +171,10 @@ docker compose up --build
 ├── src/
 │   ├── app/              # Next.js App Router (страницы и Route Handlers /api/*)
 │   ├── components/       # UI-компоненты (каталог, корзина, шапка, футер)
-│   ├── lib/              # Утилиты, клиенты и общие хелперы
-│   └── server/           # Серверный слой: сервисы, Prisma-клиент, JWT и авторизация
+│   ├── features/         # Клиентские фичи (корзина, фильтры, checkout, auth)
+│   ├── generated/        # Типы и Zod-схемы из OpenAPI (не править руками)
+│   ├── server/           # Серверный слой: сервисы, Prisma-клиент, JWT и авторизация
+│   └── shared/           # Контрактные хелперы (money, api-contract, format)
 ├── Dockerfile            # Многоэтапная оптимизированная сборка контейнера
 ├── docker-compose.yml    # Конфигурация локального окружения с PostgreSQL
 ├── playwright.config.ts  # Конфиг Playwright (baseURL из BASE_URL)

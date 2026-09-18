@@ -30,6 +30,9 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: API contract check
+        run: npm run api:check
+
       - name: Unit tests
         run: npm test
 

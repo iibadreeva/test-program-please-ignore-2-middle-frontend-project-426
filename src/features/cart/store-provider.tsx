@@ -48,8 +48,8 @@ export function useCartItems() {
   return useCartStore((s) => s.cart.items);
 }
 
-export function useCartTotalCents() {
-  return useCartStore((s) => s.cart.totalCents);
+export function useCartTotal() {
+  return useCartStore((s) => s.cart.total);
 }
 
 export function useCartPending() {

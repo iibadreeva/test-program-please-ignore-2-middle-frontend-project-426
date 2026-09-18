@@ -2,12 +2,13 @@ import { DeliveryType, OrderStatus, Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/server/db";
 import { getOrCreateCart } from "@/server/services/cart";
+import { createOrderBodySchema } from "@/shared/api-contract";
+import { toMoney } from "@/shared/money";
+import type { Order as ContractOrder } from "@/shared/api-contract";
 
-export const createOrderSchema = z
-  .object({
-    deliveryType: z.enum(["DELIVERY", "PICKUP"]),
+export const createOrderSchema = createOrderBodySchema
+  .extend({
     address: z.string().trim().optional(),
-    pickupPointId: z.string().optional(),
     recipientName: z.string().trim().min(2, "Укажите имя получателя").max(80),
     phone: z
       .string()
@@ -47,13 +48,15 @@ const orderInclude = {
 
 type OrderWithRelations = Prisma.OrderGetPayload<{ include: typeof orderInclude }>;
 
-export function serializeOrder(order: OrderWithRelations) {
+export type SerializedOrder = ContractOrder;
+
+export function serializeOrder(order: OrderWithRelations): SerializedOrder {
   return {
     id: order.id,
     status: order.status,
     deliveryType: order.deliveryType,
-    address: order.address,
-    pickupPointId: order.pickupPointId,
+    address: order.address ?? undefined,
+    pickupPointId: order.pickupPointId ?? undefined,
     pickupPoint: order.pickupPoint
       ? {
           id: order.pickupPoint.id,
@@ -63,22 +66,20 @@ export function serializeOrder(order: OrderWithRelations) {
       : null,
     recipientName: order.recipientName,
     phone: order.phone,
-    comment: order.comment,
-    totalCents: order.totalCents,
+    comment: order.comment ?? undefined,
+    total: toMoney(order.total),
     createdAt: order.createdAt.toISOString(),
     items: order.items.map((item) => ({
       id: item.id,
-      productId: item.productId,
+      productId: item.productId ?? undefined,
       titleSnapshot: item.titleSnapshot,
-      priceCentsSnapshot: item.priceCentsSnapshot,
+      priceSnapshot: toMoney(item.priceSnapshot),
       imageUrlSnapshot: item.imageUrlSnapshot,
       quantity: item.quantity,
-      lineTotalCents: item.priceCentsSnapshot * item.quantity,
+      lineTotal: toMoney(item.priceSnapshot * item.quantity),
     })),
   };
 }
-
-export type SerializedOrder = ReturnType<typeof serializeOrder>;
 
 export class OrderError extends Error {
   constructor(
@@ -116,12 +117,12 @@ export async function createOrder(userId: string, input: CreateOrderInput): Prom
       const lines: {
         productId: string;
         titleSnapshot: string;
-        priceCentsSnapshot: number;
+        priceSnapshot: number;
         imageUrlSnapshot: string;
         quantity: number;
       }[] = [];
 
-      let totalCents = 0;
+      let total = 0;
 
       for (const item of cart.items) {
         const product = byId.get(item.productId);
@@ -138,11 +139,11 @@ export async function createOrder(userId: string, input: CreateOrderInput): Prom
         lines.push({
           productId: product.id,
           titleSnapshot: product.title,
-          priceCentsSnapshot: product.priceCents,
+          priceSnapshot: product.price,
           imageUrlSnapshot: product.imageUrl,
           quantity: item.quantity,
         });
-        totalCents += product.priceCents * item.quantity;
+        total += product.price * item.quantity;
       }
 
       await Promise.all(
@@ -164,7 +165,7 @@ export async function createOrder(userId: string, input: CreateOrderInput): Prom
           recipientName: data.recipientName,
           phone: data.phone,
           comment: data.comment || null,
-          totalCents,
+          total,
           items: {
             create: lines,
           },

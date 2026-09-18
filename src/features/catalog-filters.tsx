@@ -88,14 +88,10 @@ export function CatalogFilters({ categories, brands }: Props) {
           <input
             type="number"
             min={0}
-            defaultValue={
-              searchParams.get("minPrice")
-                ? String(Number(searchParams.get("minPrice")) / 100)
-                : ""
-            }
+            defaultValue={searchParams.get("minPrice") ?? ""}
             onBlur={(e) => {
-              const rub = e.target.value ? Math.round(Number(e.target.value) * 100) : "";
-              update("minPrice", rub === "" ? "" : String(rub));
+              const rub = e.target.value ? String(Math.round(Number(e.target.value))) : "";
+              update("minPrice", rub);
             }}
             className="mt-1 w-full border border-border bg-bg px-3 py-2 font-mono text-text"
             data-testid="filter-min-price"
@@ -106,14 +102,10 @@ export function CatalogFilters({ categories, brands }: Props) {
           <input
             type="number"
             min={0}
-            defaultValue={
-              searchParams.get("maxPrice")
-                ? String(Number(searchParams.get("maxPrice")) / 100)
-                : ""
-            }
+            defaultValue={searchParams.get("maxPrice") ?? ""}
             onBlur={(e) => {
-              const rub = e.target.value ? Math.round(Number(e.target.value) * 100) : "";
-              update("maxPrice", rub === "" ? "" : String(rub));
+              const rub = e.target.value ? String(Math.round(Number(e.target.value))) : "";
+              update("maxPrice", rub);
             }}
             className="mt-1 w-full border border-border bg-bg px-3 py-2 font-mono text-text"
             data-testid="filter-max-price"

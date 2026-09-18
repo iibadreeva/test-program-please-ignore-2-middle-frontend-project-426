@@ -29,13 +29,12 @@ function sampleCart(overrides?: Partial<SerializedCart>): SerializedCart {
         id: "item-1",
         productId: "prod-1",
         quantity: 2,
-        lineTotalCents: 2000,
+        lineTotal: "2000",
         product: {
           id: "prod-1",
           slug: "gpu",
           title: "GPU",
-          priceCents: 1000,
-          oldPriceCents: null,
+          price: "1000",
           imageUrl: "/gpu.png",
           stock: 10,
           rating: 4.5,
@@ -44,7 +43,7 @@ function sampleCart(overrides?: Partial<SerializedCart>): SerializedCart {
         },
       },
     ],
-    totalCents: 2000,
+    total: "2000",
     itemsCount: 2,
     ...overrides,
   };
@@ -62,17 +61,18 @@ describe("createCartStore", () => {
         {
           ...sampleCart().items[0],
           quantity: 3,
-          lineTotalCents: 3000,
+          lineTotal: "3000",
         },
       ],
-      totalCents: 3000,
+      total: "3000",
       itemsCount: 3,
     });
     mockedUpdate.mockResolvedValue({ ok: true, cart: serverCart });
 
     const pending = store.getState().setQuantity("item-1", 3);
     expect(store.getState().cart.itemsCount).toBe(3);
-    expect(store.getState().cart.totalCents).toBe(3000);
+    expect(store.getState().cart.total).toBe("3000");
+    expect(store.getState().cart.items[0]?.lineTotal).toBe("3000");
 
     await pending;
     expect(store.getState().cart).toEqual(serverCart);
@@ -92,7 +92,7 @@ describe("createCartStore", () => {
 
   it("setCart overwrites state from server", () => {
     const store = createCartStore(sampleCart());
-    const next = sampleCart({ items: [], totalCents: 0, itemsCount: 0 });
+    const next = sampleCart({ items: [], total: "0", itemsCount: 0 });
     store.getState().setCart(next);
     expect(store.getState().cart.itemsCount).toBe(0);
   });
@@ -101,7 +101,7 @@ describe("createCartStore", () => {
     const store = createCartStore(sampleCart());
     mockedClear.mockResolvedValue({
       ok: true,
-      cart: { id: "cart-1", items: [], totalCents: 0, itemsCount: 0 },
+      cart: { id: "cart-1", items: [], total: "0", itemsCount: 0 },
     });
 
     const pending = store.getState().clear();
@@ -111,7 +111,7 @@ describe("createCartStore", () => {
   });
 
   it("adds item via server response", async () => {
-    const store = createCartStore(sampleCart({ items: [], totalCents: 0, itemsCount: 0 }));
+    const store = createCartStore(sampleCart({ items: [], total: "0", itemsCount: 0 }));
     const next = sampleCart();
     mockedAdd.mockResolvedValue({ ok: true, cart: next });
 

@@ -42,11 +42,11 @@ export default async function ProductPage({ params }: Props) {
         </h1>
         <div className="mt-4 flex items-baseline gap-3">
           <span className="font-mono text-2xl text-accent" data-testid="product-price">
-            {formatPrice(product.priceCents)}
+            {formatPrice(product.price)}
           </span>
-          {product.oldPriceCents ? (
+          {product.oldPrice ? (
             <span className="font-mono text-muted line-through">
-              {formatPrice(product.oldPriceCents)}
+              {formatPrice(product.oldPrice)}
             </span>
           ) : null}
         </div>

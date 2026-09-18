@@ -19,7 +19,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "tsp:compile": "tsp compile api --emit @typespec/openapi3"
+    "tsp:compile": "tsp compile api --emit @typespec/openapi3",
+    "api:types": "typed-openapi api/openapi.yaml -o src/generated/api.ts --runtime zod --format --no-include-client",
+    "api:gen": "npm run tsp:compile && npm run api:types",
+    "api:check": "npm run api:gen && git diff --exit-code -- api/openapi.yaml src/generated/api.ts src/generated/api.types.d.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -66,6 +69,7 @@
     "prisma": "^6.16.2",
     "tailwindcss": "^4.1.13",
     "tsx": "^4.20.5",
+    "typed-openapi": "^4.1.0",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
   }

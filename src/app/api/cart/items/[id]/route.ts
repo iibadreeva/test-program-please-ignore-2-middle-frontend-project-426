@@ -1,13 +1,9 @@
-import { z } from "zod";
 import { apiError, apiOk } from "@/server/http";
 import { getCurrentUser } from "@/server/auth/session";
 import { CartError, removeCartItem, updateCartItemQuantity } from "@/server/services/cart";
+import { updateCartItemBodySchema } from "@/shared/api-contract";
 
 type Context = { params: Promise<{ id: string }> };
-
-const patchSchema = z.object({
-  quantity: z.number().int().positive(),
-});
 
 export async function PATCH(request: Request, context: Context) {
   const { id } = await context.params;
@@ -19,7 +15,7 @@ export async function PATCH(request: Request, context: Context) {
     return apiError(400, "VALIDATION_ERROR", "Некорректный JSON");
   }
 
-  const parsed = patchSchema.safeParse(json);
+  const parsed = updateCartItemBodySchema.safeParse(json);
   if (!parsed.success) {
     return apiError(400, "VALIDATION_ERROR", "Некорректное тело запроса", parsed.error.flatten());
   }

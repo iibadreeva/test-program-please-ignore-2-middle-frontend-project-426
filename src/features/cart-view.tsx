@@ -6,13 +6,13 @@ import {
   useCartItems,
   useCartPending,
   useCartStore,
-  useCartTotalCents,
+  useCartTotal,
 } from "@/features/cart/store-provider";
 import { formatPrice } from "@/shared/format";
 
 export function CartView() {
   const items = useCartItems();
-  const totalCents = useCartTotalCents();
+  const total = useCartTotal();
   const pending = useCartPending();
   const error = useCartError();
   const setQuantity = useCartStore((s) => s.setQuantity);
@@ -60,7 +60,7 @@ export function CartView() {
                 {item.product.title}
               </Link>
               <p className="mt-1 font-mono text-sm text-accent">
-                {formatPrice(item.product.priceCents)}
+                {formatPrice(item.product.price)}
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <label className="text-sm text-muted">
@@ -93,7 +93,7 @@ export function CartView() {
               </div>
             </div>
             <p className="font-mono text-right text-text" data-testid="cart-item-line-total">
-              {formatPrice(item.product.priceCents * item.quantity)}
+              {formatPrice(item.lineTotal)}
             </p>
           </li>
         ))}
@@ -112,7 +112,7 @@ export function CartView() {
         <div className="text-right">
           <p className="text-sm text-muted">Итого</p>
           <p className="font-mono text-2xl text-accent" data-testid="cart-total">
-            {formatPrice(totalCents)}
+            {formatPrice(total)}
           </p>
           <Link
             href="/checkout"

@@ -1,15 +1,11 @@
 import Link from "next/link";
 import { formatPrice } from "@/shared/format";
+import type { ProductSummary } from "@/shared/api-contract";
 
-export type ProductCardData = {
-  id: string;
-  slug: string;
-  title: string;
-  priceCents: number;
-  oldPriceCents: number | null;
-  imageUrl: string;
-  stock: number;
-  rating: number;
+export type ProductCardData = Pick<
+  ProductSummary,
+  "id" | "slug" | "title" | "price" | "oldPrice" | "imageUrl" | "stock" | "rating"
+> & {
   brand: { name: string };
   category: { name: string };
 };
@@ -41,11 +37,11 @@ export function ProductCard({ product }: Props) {
           </h2>
           <div className="flex items-baseline gap-2">
             <span className="font-mono text-lg text-accent" data-testid="product-card-price">
-              {formatPrice(product.priceCents)}
+              {formatPrice(product.price)}
             </span>
-            {product.oldPriceCents ? (
+            {product.oldPrice ? (
               <span className="font-mono text-sm text-muted line-through">
-                {formatPrice(product.oldPriceCents)}
+                {formatPrice(product.oldPrice)}
               </span>
             ) : null}
           </div>

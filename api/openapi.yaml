@@ -127,8 +127,8 @@ paths:
       operationId: CartApi_addItem
       parameters: []
       responses:
-        '200':
-          description: The request has succeeded.
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
           content:
             application/json:
               schema:
@@ -414,9 +414,12 @@ components:
       properties:
         productId:
           type: string
+          minLength: 1
         quantity:
           type: integer
           format: int32
+          minimum: 1
+          description: Количество единиц товара
     Brand:
       type: object
       required:
@@ -435,7 +438,7 @@ components:
       required:
         - id
         - items
-        - totalCents
+        - total
         - itemsCount
       properties:
         id:
@@ -444,9 +447,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/CartItem'
-        totalCents:
-          type: integer
-          format: int32
+        total:
+          $ref: '#/components/schemas/Money'
         itemsCount:
           type: integer
           format: int32
@@ -457,7 +459,7 @@ components:
         - productId
         - quantity
         - product
-        - lineTotalCents
+        - lineTotal
       properties:
         id:
           type: string
@@ -468,9 +470,8 @@ components:
           format: int32
         product:
           $ref: '#/components/schemas/ProductSummary'
-        lineTotalCents:
-          type: integer
-          format: int32
+        lineTotal:
+          $ref: '#/components/schemas/Money'
     Category:
       type: object
       required:
@@ -534,15 +535,20 @@ components:
           type: string
         password:
           type: string
+    Money:
+      type: string
+      pattern: ^(0|[1-9][0-9]*)$
+      description: Денежная сумма в целых рублях (десятичная строка без копеек, без ведущих нулей)
     Order:
       type: object
       required:
         - id
         - status
         - deliveryType
+        - pickupPoint
         - recipientName
         - phone
-        - totalCents
+        - total
         - createdAt
         - items
       properties:
@@ -565,15 +571,20 @@ components:
           type: string
         pickupPointId:
           type: string
+        pickupPoint:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/PickupPoint'
+          nullable: true
+          description: Развёрнутый пункт самовывоза; null для доставки или если пункт удалён
         recipientName:
           type: string
         phone:
           type: string
         comment:
           type: string
-        totalCents:
-          type: integer
-          format: int32
+        total:
+          $ref: '#/components/schemas/Money'
         createdAt:
           type: string
           format: date-time
@@ -586,9 +597,10 @@ components:
       required:
         - id
         - titleSnapshot
-        - priceCentsSnapshot
+        - priceSnapshot
         - imageUrlSnapshot
         - quantity
+        - lineTotal
       properties:
         id:
           type: string
@@ -596,14 +608,15 @@ components:
           type: string
         titleSnapshot:
           type: string
-        priceCentsSnapshot:
-          type: integer
-          format: int32
+        priceSnapshot:
+          $ref: '#/components/schemas/Money'
         imageUrlSnapshot:
           type: string
         quantity:
           type: integer
           format: int32
+        lineTotal:
+          $ref: '#/components/schemas/Money'
     PaginationMeta:
       type: object
       required:
@@ -668,7 +681,7 @@ components:
         - id
         - slug
         - title
-        - priceCents
+        - price
         - imageUrl
         - stock
         - rating
@@ -681,12 +694,13 @@ components:
           type: string
         title:
           type: string
-        priceCents:
-          type: integer
-          format: int32
-        oldPriceCents:
-          type: integer
-          format: int32
+        price:
+          allOf:
+            - $ref: '#/components/schemas/Money'
+          description: Цена в целых рублях
+          example: '16990'
+        oldPrice:
+          $ref: '#/components/schemas/Money'
         imageUrl:
           type: string
         stock:
@@ -720,6 +734,8 @@ components:
         quantity:
           type: integer
           format: int32
+          minimum: 1
+          description: Количество единиц товара
     UserPublic:
       type: object
       required:

@@ -4,6 +4,7 @@ import { Header } from "@/components/header";
 import { CartStoreProvider } from "@/features/cart/store-provider";
 import { getCurrentUser } from "@/server/auth/session";
 import { getCartView, type SerializedCart } from "@/server/services/cart";
+import { toMoney } from "@/shared/money";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -40,7 +41,7 @@ async function loadInitialCart(): Promise<SerializedCart> {
     const user = await getCurrentUser();
     return await getCartView(user?.id);
   } catch {
-    return { id: "empty", items: [], totalCents: 0, itemsCount: 0 };
+    return { id: "empty", items: [], total: toMoney(0), itemsCount: 0 };
   }
 }
 

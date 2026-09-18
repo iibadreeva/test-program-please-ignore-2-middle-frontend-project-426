@@ -3,6 +3,8 @@
 import { useActionState, useState } from "react";
 import { checkoutAction, type CheckoutFormState } from "@/features/checkout-actions";
 import { formatPrice } from "@/shared/format";
+import { fromMoney } from "@/shared/money";
+import type { MoneyString } from "@/shared/api-contract";
 
 type PickupPoint = { id: string; name: string; address: string };
 
@@ -10,19 +12,19 @@ type CartLine = {
   id: string;
   title: string;
   quantity: number;
-  priceCents: number;
+  price: MoneyString;
 };
 
 type Props = {
   pickupPoints: PickupPoint[];
   cartLines: CartLine[];
-  totalCents: number;
+  total: MoneyString;
   defaultName?: string;
 };
 
 const initial: CheckoutFormState = { ok: false };
 
-export function CheckoutForm({ pickupPoints, cartLines, totalCents, defaultName = "" }: Props) {
+export function CheckoutForm({ pickupPoints, cartLines, total, defaultName = "" }: Props) {
   const [state, action, pending] = useActionState(checkoutAction, initial);
   const [deliveryType, setDeliveryType] = useState<"DELIVERY" | "PICKUP">("DELIVERY");
 
@@ -145,13 +147,15 @@ export function CheckoutForm({ pickupPoints, cartLines, totalCents, defaultName 
               <span className="text-muted">
                 {line.title} × {line.quantity}
               </span>
-              <span className="font-mono">{formatPrice(line.priceCents * line.quantity)}</span>
+              <span className="font-mono">
+                {formatPrice(fromMoney(line.price) * line.quantity)}
+              </span>
             </li>
           ))}
         </ul>
         <p className="mt-4 flex justify-between border-t border-border pt-4 font-mono text-lg text-accent">
           <span>Итого</span>
-          <span data-testid="checkout-total">{formatPrice(totalCents)}</span>
+          <span data-testid="checkout-total">{formatPrice(total)}</span>
         </p>
         <button
           type="submit"

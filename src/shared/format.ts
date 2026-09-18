@@ -1,7 +1,6 @@
-export function formatPrice(cents: number, locale = "ru-RU"): string {
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency: "RUB",
-    maximumFractionDigits: 0,
-  }).format(cents / 100);
+import { formatMoney } from "@/shared/money";
+
+/** @deprecated Prefer formatMoney — kept as alias for gradual migration. */
+export function formatPrice(amount: string | number, locale = "ru-RU"): string {
+  return formatMoney(amount, locale);
 }

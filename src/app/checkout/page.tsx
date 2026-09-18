@@ -36,12 +36,12 @@ export default async function CheckoutPage() {
       <CheckoutForm
         pickupPoints={pickupPoints}
         defaultName={user.name}
-        totalCents={cart.totalCents}
+        total={cart.total}
         cartLines={cart.items.map((item) => ({
           id: item.id,
           title: item.product.title,
           quantity: item.quantity,
-          priceCents: item.product.priceCents,
+          price: item.product.price,
         }))}
       />
     </div>

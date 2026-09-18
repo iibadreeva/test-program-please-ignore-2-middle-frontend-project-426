@@ -12,6 +12,10 @@ namespace HexParts;
 
 // --- Models ---
 
+@doc("Денежная сумма в целых рублях (десятичная строка без копеек, без ведущих нулей)")
+@pattern("^(0|[1-9][0-9]*)$")
+scalar Money extends string;
+
 model ErrorBody {
   code: string;
   message: string;
@@ -44,8 +48,10 @@ model ProductSummary {
   id: string;
   slug: string;
   title: string;
-  priceCents: int32;
-  oldPriceCents?: int32;
+  /** Цена в целых рублях */
+  @example("16990")
+  price: Money;
+  oldPrice?: Money;
   imageUrl: string;
   stock: int32;
   rating: float64;
@@ -75,13 +81,13 @@ model CartItem {
   productId: string;
   quantity: int32;
   product: ProductSummary;
-  lineTotalCents: int32;
+  lineTotal: Money;
 }
 
 model Cart {
   id: string;
   items: CartItem[];
-  totalCents: int32;
+  total: Money;
   itemsCount: int32;
 }
 
@@ -95,9 +101,10 @@ model OrderItem {
   id: string;
   productId?: string;
   titleSnapshot: string;
-  priceCentsSnapshot: int32;
+  priceSnapshot: Money;
   imageUrlSnapshot: string;
   quantity: int32;
+  lineTotal: Money;
 }
 
 model Order {
@@ -106,10 +113,12 @@ model Order {
   deliveryType: "DELIVERY" | "PICKUP";
   address?: string;
   pickupPointId?: string;
+  /** Развёрнутый пункт самовывоза; null для доставки или если пункт удалён */
+  pickupPoint: PickupPoint | null;
   recipientName: string;
   phone: string;
   comment?: string;
-  totalCents: int32;
+  total: Money;
   createdAt: utcDateTime;
   items: OrderItem[];
 }
@@ -126,11 +135,16 @@ model LoginBody {
 }
 
 model AddCartItemBody {
+  @minLength(1)
   productId: string;
+  /** Количество единиц товара */
+  @minValue(1)
   quantity?: int32;
 }
 
 model UpdateCartItemBody {
+  /** Количество единиц товара */
+  @minValue(1)
   quantity: int32;
 }
 
@@ -232,7 +246,10 @@ interface CartApi {
 
   @post
   @route("/items")
-  addItem(@body body: AddCartItemBody): Cart | {
+  addItem(@body body: AddCartItemBody): {
+    @statusCode statusCode: 201;
+    @body body: Cart;
+  } | {
     @statusCode statusCode: 400;
     @body body: ErrorResponse;
   };

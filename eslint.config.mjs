@@ -20,6 +20,7 @@ const eslintConfig = [
       "playwright-report/**",
       "test-results/**",
       "api/tsp-output/**",
+      "src/generated/**",
       "next-env.d.ts",
     ],
   },

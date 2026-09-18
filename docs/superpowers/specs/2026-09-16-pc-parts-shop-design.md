@@ -42,18 +42,18 @@ Browser
 ## Domain rules
 
 1. **Cart** is a mutable draft. One cart per user or guest (`cart_id` cookie). Survives reload. Guest cart merges into user cart on login/register.
-2. **Order** is an immutable historical document. `OrderItem` stores snapshots (`titleSnapshot`, `priceCentsSnapshot`, `imageUrlSnapshot`). Price changes after purchase must not alter past orders.
+2. **Order** is an immutable historical document. `OrderItem` stores snapshots (`titleSnapshot`, `priceSnapshot`, `imageUrlSnapshot`). Price changes after purchase must not alter past orders.
 3. Checkout is one Prisma transaction: recompute totals from current product prices → create order + snapshot items → clear cart.
-4. Money is stored as integer cents (`priceCents`), never float.
+4. Money is whole rubles without kopecks: DB stores `Int`, API exposes `Money` as a digit string (`^[0-9]+$`).
 
 ## Data model
 
 - `User` — email (unique), passwordHash, name
 - `Category`, `Brand` — slug + name
-- `Product` — slug, title, description, priceCents, oldPriceCents?, imageUrl, stock, rating, specs (Json), categoryId, brandId
+- `Product` — slug, title, description, price, oldPrice?, imageUrl, stock, rating, specs (Json), categoryId, brandId
 - `Cart` — userId? (unique when set)
 - `CartItem` — cartId, productId, quantity (unique on cartId+productId)
-- `Order` — userId, status, deliveryType (DELIVERY | PICKUP), address?, pickupPointId?, recipientName, phone, comment?, totalCents
+- `Order` — userId, status, deliveryType (DELIVERY | PICKUP), address?, pickupPointId?, pickupPoint (embedded | null), recipientName, phone, comment?, total
 - `OrderItem` — orderId, productId?, snapshots, quantity
 - `PickupPoint` — name, address
 

@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { listProducts } from "@/server/services/catalog";
 import { ProductCard } from "@/components/product-card";
+import type { ProductSummary } from "@/shared/api-contract";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  let featured: Awaited<ReturnType<typeof listProducts>>["items"] = [];
+  let featured: ProductSummary[] = [];
   try {
     featured = (await listProducts({ sort: "rating_desc", perPage: 3 })).items;
   } catch {
