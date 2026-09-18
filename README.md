@@ -58,8 +58,9 @@
 - **Backend & API:** [Next.js Route Handlers](https://nextjs.org/docs/app/building-your-application/routing/route-handlers), [TypeSpec](https://typespec.io/) → [OpenAPI 3.0](https://www.openapis.org/)
 - **База данных & ORM:** [PostgreSQL](https://www.postgresql.org/), [Prisma ORM](https://www.prisma.io/)
 - **Безопасность:** [`jose`](https://github.com/panva/jose) (JWT), [`bcryptjs`](https://github.com/dcodeIO/bcrypt.js) (хеширование паролей)
+- **Мониторинг:** [Sentry](https://sentry.io/) (`@sentry/nextjs` — фронтенд и бэкенд)
 - **Тестирование & CI:** [Vitest](https://vitest.dev/), [Playwright](https://playwright.dev/), [GitHub Actions](https://docs.github.com/en/actions)
-- **Инфраструктура:** [Docker](https://www.docker.com/), [Docker Compose](https://docs.docker.com/compose/) (Multi-stage build)
+- **Инфраструктура:** [Docker](https://www.docker.com/), [Docker Compose](https://docs.docker.com/compose/) (Multi-stage build), [Render](https://render.com/) (деплой и managed PostgreSQL)
 
 ---
 
