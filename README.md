@@ -1,45 +1,264 @@
-# Интернет-магазин комплектующих для ПК
+# 🛒 HexParts — Интернет-магазин комплектующих для ПК
 
 [![hexlet-check](https://github.com/iibadreeva/test-program-please-ignore-2-middle-frontend-project-426/actions/workflows/hexlet-check.yml/badge.svg)](https://github.com/iibadreeva/test-program-please-ignore-2-middle-frontend-project-426/actions)
+[![CI](https://github.com/iibadreeva/test-program-please-ignore-2-middle-frontend-project-426/actions/workflows/ci.yml/badge.svg)](https://github.com/iibadreeva/test-program-please-ignore-2-middle-frontend-project-426/actions/workflows/ci.yml)
+![Next.js](https://img.shields.io/badge/Next.js_15-black?style=flat-square&logo=next.js)
+![React](https://img.shields.io/badge/React_19-20232A?style=flat-square&logo=react&logoColor=61DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=flat-square&logo=prisma&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)
 
-Разработайте интернет-магазин комплектующих для ПК целиком на TypeScript.
-Фронтенд пишете на любом TS-фреймворке (React, Vue, Svelte, Angular, Solid и др.).
-Готового API здесь нет, поэтому сервер под свой интерфейс вы поднимаете сами,
-а фреймворк для него и работу с базой выбираете на свой вкус. Спроектируйте API
-через TypeSpec → OpenAPI, реализуйте регистрацию и авторизацию, главную
-с промо-блоками, каталог с фильтрами и пагинацией, корзину, оформление заказа
-и личный кабинет с историей заказов. Приложение деплоится в прод с третьего шага
-и развивается под собственными браузерными тестами.
+**HexParts** — современный полнофункциональный интернет-магазин компьютерных комплектующих на **Next.js (App Router)**. Включает интерактивный каталог товаров с гибкими фильтрами, корзину, оформление заказов с выбором доставки или самовывоза, личный кабинет и полноценный REST API поверх Prisma ORM и PostgreSQL.
 
-Учебный проект Хекслета: https://ru.hexlet.io/programs/middle-frontend
-Как это должно работать: https://files.hexlet.app/a/qf7bsq
+### 🔗 Демо
 
-## Стек
+**Приложение развёрнуто на Render:** [test-program-please-ignore-2-middle.onrender.com](https://test-program-please-ignore-2-middle.onrender.com/)
 
-- JavaScript
+- 🩺 **Health Check:** [/api/health](https://test-program-please-ignore-2-middle.onrender.com/api/health)
 
-## Установка
+> ⏳ Сервис работает на бесплатном тарифе и засыпает при простое — первый запрос после паузы может занять до минуты.
 
-<!-- Опишите установку: клонирование, зависимости, переменные окружения -->
+> 🎓 **Учебный проект Хекслета**: [Программа «Фронтенд-разработчик (Middle)»](https://ru.hexlet.io/programs/test-program-please-ignore-2-middle-frontend)
+
+---
+
+### 🌟 Основные возможности
+
+- 🔍 **Каталог и поиск:** серверная фильтрация по категории, цене, наличию и названию, сортировка и пагинация; состояние выдачи живёт в адресе страницы (см. [Каталог](#-каталог)).
+- 🛍️ **Корзина:** сквозная работа с корзиной (гостевая корзина + автоматический merge при авторизации).
+- 🔐 **Аутентификация:** регистрация, вход, безопасная работа с JWT-токенами в `httpOnly` cookie.
+- 📦 **Оформление заказа:** поддержка курьерской доставки и пунктов самовывоза.
+- 👤 **Личный кабинет:** история и детальный статус оформленных заказов.
+- 🩺 **Health Check:** эндпоинт `GET /api/health` — проверка, что процесс жив и PostgreSQL отвечает (см. ниже).
+
+---
+
+### 🩺 Health Check (`GET /api/health`)
+
+Эндпоинт для CI, деплоя и мониторинга: показывает, что Next.js слушает порт **и** до Postgres можно достучаться.
+
+Реализация: `src/app/api/health/route.ts`.
+
+| Результат     | HTTP  | Тело                                               | Когда                          |
+| :------------ | :---: | :------------------------------------------------- | :----------------------------- |
+| ОК            | `200` | `{ "status": "ok" }`                               | `SELECT 1` к БД прошёл успешно |
+| БД недоступна | `503` | ошибка `INTERNAL_ERROR` («База данных недоступна») | нет соединения / ошибка Prisma |
+
+- Ответ **не кэшируется** (`dynamic = "force-dynamic"`) — каждый запрос выполняется заново.
+- Пример: [http://localhost:3000/api/health](http://localhost:3000/api/health)
+
+> Это HTTP-проверка приложения. Отдельно в `docker-compose.yml` у сервиса `db` есть Compose-`healthcheck` (`pg_isready`) — он нужен, чтобы контейнер `app` стартовал только после готовности Postgres.
+
+---
+
+### 🛍️ Каталог
+
+Страница `/catalog` — две колонки: панель фильтров слева, выдача справа. На узких экранах панель разворачивается над списком.
+
+#### Фильтрация и пагинация — на сервере
+
+Выборка целиком выполняется в Postgres: браузер получает только текущую страницу. Параметры описаны в спецификации (`GET /products` в [api/main.tsp](api/main.tsp)) и валидируются Zod-схемой `listProductsQuerySchema` из `src/shared/api-contract.ts` — строка запроса нигде не разбирается вручную.
+
+| Параметр                | Тип                                                   | Описание                                                     |
+| :---------------------- | :---------------------------------------------------- | :----------------------------------------------------------- |
+| `category`              | слаг категории                                        | Пустое значение — все категории                              |
+| `brand`                 | слаг бренда                                           | Пустое значение — все бренды                                 |
+| `minPrice` / `maxPrice` | целые рубли ≥ 0                                       | Границы диапазона, каждая независима                         |
+| `available`             | `true` / `false`                                      | `true` оставляет только товары с остатком больше нуля        |
+| `search`                | строка                                                | Поиск по названию, без учёта регистра                        |
+| `sort`                  | `newest` / `price_asc` / `price_desc` / `rating_desc` | По умолчанию `newest`                                        |
+| `page`                  | целое ≥ 1                                             | Страница за пределами диапазона клампится к последней        |
+| `perPage`               | целое 1…48                                            | По умолчанию 12                                              |
+
+Фильтры комбинируются. Сортировка всегда дополняется ключом `id` — без этого страницы «плывут», потому что у сидированных товаров совпадают `createdAt` и цены.
+
+#### Состояние выдачи — в адресе
+
+Источник правды для запроса — строка адреса, поэтому перезагрузка восстанавливает выдачу, кнопки «назад»/«вперёд» работают, а ссылкой на отфильтрованную выдачу можно поделиться. Контролы при этом держат локальное состояние и отзываются мгновенно, а запрос уходит с задержкой 300 мс: пять нажатых букв дают одну навигацию, а не пять. Смена любого фильтра сбрасывает номер страницы.
+
+Перевод между адресом и контролами живёт в одном месте — `src/features/catalog/filters-state.ts`, — поэтому ссылки пагинации и панель фильтров не могут разойтись.
+
+#### Доступность и изображения
+
+Доступность выводится из остатка (`stock > 0`) — так же её понимают корзина и заказы. Недоступный товар из каталога не исчезает: он остаётся в списке с пометкой «Нет в наличии» и атрибутом `data-available="false"`.
+
+Если у товара нет изображения (`imageUrl: null`), карточка показывает заглушку `public/product-placeholder.svg`. Компонент `ProductImage` подставляет её и при ошибке загрузки, поэтому сломанной картинки не будет и без доступа к внешнему хосту.
+
+#### Данные каталога (сид)
+
+`prisma/seed.ts` идемпотентен: работает через `upsert` под advisory-lock Postgres, повторный запуск не создаёт дубли. Наполнение гарантирует 9 категорий и 88 товаров (минимум 8 в каждой категории), 8 страниц при `perPage=12`, цены от 690 до 219 990 ₽, ровно один товар без изображения и один недоступный. Остатки при повторном запуске не перезатираются, кроме товаров, у которых остаток закреплён демо-данными.
+
+#### Атрибуты `data-testid`
+
+| Элемент                             | Описание                                                            |
+| :---------------------------------- | :------------------------------------------------------------------ |
+| `nav-catalog`                       | Ссылка в каталог в шапке, видна с любой страницы                    |
+| `catalog-list`                      | Контейнер списка товаров                                            |
+| `catalog-item`                      | Карточка товара в списке                                            |
+| `catalog-item-name`                 | Название товара; ссылка на страницу товара                          |
+| `catalog-item-price`                | Цена товара                                                         |
+| `catalog-item-description`          | Краткое описание                                                    |
+| `catalog-item-image`                | Изображение; `data-placeholder` показывает, отрисована ли заглушка   |
+| `catalog-item-availability`         | Доступность; дублируется атрибутом `data-available` (`true`/`false`) |
+| `catalog-empty`                     | Состояние «под фильтры ничего не подошло»                           |
+| `catalog-total`                     | Число найденных товаров                                             |
+| `catalog-filters`                   | Панель фильтров со всеми контролами                                 |
+| `filter-category`                   | Выбор категории; значения опций — слаги, пустое значение — все       |
+| `filter-brand`                      | Выбор бренда                                                        |
+| `filter-price-min` / `-max`         | Границы диапазона цены                                              |
+| `filter-available`                  | Чекбокс «только в наличии»                                          |
+| `filter-search`                     | Поиск по названию                                                   |
+| `filter-sort`                       | Сортировка                                                          |
+| `filter-reset`                      | Сброс фильтров                                                      |
+| `catalog-pagination`                | Блок пагинации; присутствует всегда                                 |
+| `catalog-page-prev` / `-next`       | Переход на предыдущую и следующую страницу                          |
+| `catalog-page-current`              | Текущая страница и их общее число                                   |
+
+На краях диапазона `catalog-page-prev` / `catalog-page-next` остаются в разметке, но перестают быть ссылками — уйти на несуществующую страницу нельзя.
+
+---
+
+### 🛠️ Стек технологий
+
+- **Frontend:** [React](https://react.dev/), [Next.js](https://nextjs.org/) (App Router, Server Components & Server Actions), [Tailwind CSS](https://tailwindcss.com/), [Lucide Icons](https://lucide.dev/), [Zustand](https://zustand-demo.pmnd.rs/)
+- **Backend & API:** [Next.js Route Handlers](https://nextjs.org/docs/app/building-your-application/routing/route-handlers), [TypeSpec](https://typespec.io/) → [OpenAPI 3.0](https://www.openapis.org/)
+- **База данных & ORM:** [PostgreSQL](https://www.postgresql.org/), [Prisma ORM](https://www.prisma.io/)
+- **Безопасность:** серверные сессии в PostgreSQL (httpOnly cookie), [`bcryptjs`](https://github.com/dcodeIO/bcrypt.js) (хеширование паролей)
+- **Мониторинг:** [Sentry](https://sentry.io/) (`@sentry/nextjs` — фронтенд и бэкенд)
+- **Тестирование & CI:** [Vitest](https://vitest.dev/), [Playwright](https://playwright.dev/), [GitHub Actions](https://docs.github.com/en/actions)
+- **Инфраструктура:** [Docker](https://www.docker.com/), [Docker Compose](https://docs.docker.com/compose/) (Multi-stage build), [Render](https://render.com/) (деплой и managed PostgreSQL)
+
+---
+
+### 📋 Контракт запуска и переменные окружения
+
+Приложение упаковывается в единый Docker-образ и обслуживает UI и REST API (`/api/*`) на одном порту через `0.0.0.0:$PORT`.
+
+| Переменная               | Обязательная | Описание / Пример                                                                    |
+| :----------------------- | :----------: | :----------------------------------------------------------------------------------- |
+| `PORT`                   |      ❌      | Порт HTTP-сервера (по умолчанию `3000`)                                              |
+| `DATABASE_URL`           |      ✅      | Строка подключения к PostgreSQL (`postgresql://user:pass@host:5432/db`)              |
+| `BASE_URL`               |      ❌      | Базовый URL для Playwright (`http://localhost:3000`). В CI/проверке Хекслета задаётся снаружи |
+| `NEXT_PUBLIC_SENTRY_DSN` |      ❌\*     | DSN проекта Sentry (фронтенд + fallback для бэкенда)                                 |
+| `SENTRY_DSN`             |      ❌      | Опциональный DSN только для сервера (иначе берётся `NEXT_PUBLIC_SENTRY_DSN`)         |
+| `SENTRY_AUTH_TOKEN`      |      ❌\*     | Токен загрузки source maps при `next build` (не коммитить)                           |
+
+> \* Нужны для мониторинга ошибок на проде. Значения задаются в переменных окружения хостинга, не в коде.
+
+> 🏗️ **Sentry и время сборки:** `NEXT_PUBLIC_SENTRY_DSN` вшивается в клиентский бандл на этапе `next build`, поэтому в `Dockerfile` он объявлен как `ARG` — Render автоматически передаёт переменные окружения сервиса в сборку образа. Без этого фронтенд-часть Sentry остаётся выключенной, даже если переменная задана в рантайме.
+
+> ℹ️ **Автоматические миграции и сид:**  
+> При старте контейнера скрипт `docker-entrypoint.sh` автоматически дожидается готовности PostgreSQL, применяет миграции (`prisma migrate deploy`) и выполняет идемпотентное наполнение каталога.
+
+---
+
+### 🚀 Быстрый старт
+
+#### Вариант 1: Запуск через Docker Compose (Рекомендуемый)
+
+Убедитесь, что у вас запущен Docker Desktop / Docker Engine:
 
 ```bash
+# Клонирование репозитория
 git clone https://github.com/iibadreeva/test-program-please-ignore-2-middle-frontend-project-426.git
 cd test-program-please-ignore-2-middle-frontend-project-426
+
+# Запуск приложения и базы данных
+docker compose up --build
 ```
 
-## Использование
+- 🌐 **Приложение:** [http://localhost:3000](http://localhost:3000)
+- 🩺 **Health Check:** [http://localhost:3000/api/health](http://localhost:3000/api/health)
+- 🗄️ **PostgreSQL:** `localhost:5432` (`hexparts` / `hexparts`, БД: `pc_parts_shop`)
 
-<!-- Добавьте примеры запуска и запись asciinema — именно это смотрит работодатель -->
+---
+
+#### Вариант 2: Локальная разработка
+
+1. **Установка зависимостей и настройка окружения:**
+
+   ```bash
+   npm install
+   cp .env.example .env
+   ```
+
+2. **Запуск базы данных в Docker:**
+
+   ```bash
+   docker compose up -d db
+   ```
+
+3. **Применение миграций и сидирование данных:**
+
+   ```bash
+   npm run db:deploy
+   npm run db:seed
+   ```
+
+4. **Запуск dev-сервера:**
+   ```bash
+   npm run dev
+   ```
+
+Приложение будет доступно по адресу [http://localhost:3000](http://localhost:3000).
+
+---
+
+### 📜 Доступные npm-скрипты
+
+| Скрипт                | Описание                                                        |
+| :-------------------- | :-------------------------------------------------------------- |
+| `npm run dev`         | Запуск сервера разработки с Hot-Reload                          |
+| `npm run build`       | Production-сборка приложения Next.js                            |
+| `npm start`           | Запуск собранного production-сервера                            |
+| `npm run typecheck`   | Проверка типов TypeScript (фронтенд + скрипты)                  |
+| `npm run db:deploy`   | Применение миграций Prisma к базе данных                        |
+| `npm run db:migrate`  | Создание новой миграции в процессе разработки                   |
+| `npm run db:seed`     | Идемпотентное наполнение каталога тестовыми данными             |
+| `npm run seed:build`  | Сборка standalone-скрипта сида для Docker-образа                |
+| `npm run tsp:compile` | Компиляция спецификации TypeSpec в OpenAPI (`api/openapi.yaml`) |
+| `npm run api:types`   | Генерация Zod-схем и типов из OpenAPI (`src/generated/`)        |
+| `npm run api:gen`     | Полный цикл: TypeSpec → OpenAPI → типы/схемы                    |
+| `npm run api:check`   | Проверка, что сгенерированные артефакты не рассинхронизированы  |
+| `npm test`            | Модульные тесты Vitest: проект `node` (сервисы) и `dom` (jsdom) |
+| `npm run test:e2e`    | Запуск сквозных E2E-тестов Playwright                           |
+
+---
+
+### 🏗️ Архитектура проекта
+
+```text
+├── e2e/                  # Браузерные smoke/e2e-тесты Playwright
+├── api/                  # TypeSpec спецификации API и сгенерированный openapi.yaml
+├── prisma/               # Схема БД, SQL-миграции и сид-скрипты
+├── public/               # Статические ассеты и изображения
+├── src/
+│   ├── app/              # Next.js App Router (страницы и Route Handlers /api/*)
+│   ├── components/       # UI-компоненты (карточка товара, пагинация, шапка)
+│   ├── features/         # Клиентские фичи (корзина, фильтры каталога, checkout, auth)
+│   ├── generated/        # Типы и Zod-схемы из OpenAPI (не править руками)
+│   ├── server/           # Серверный слой: сервисы, Prisma-клиент, сессии и авторизация
+│   ├── shared/           # Контрактные хелперы (money, api-contract, format)
+│   └── test/             # Общий setup для компонентных тестов (jsdom)
+├── Dockerfile            # Многоэтапная оптимизированная сборка контейнера
+├── docker-compose.yml    # Конфигурация локального окружения с PostgreSQL
+├── playwright.config.ts  # Конфиг Playwright (baseURL из BASE_URL)
+└── docker-entrypoint.sh  # Точка входа контейнера (healthcheck БД, миграции, сид, старт)
+```
 
 ---
 
 <details>
-<summary>Автоматические тесты Хекслета</summary>
+<summary><b>🤖 Автоматические тесты Хекслета</b></summary>
+<br>
 
-Тесты запускаются на каждый коммит. За запуск отвечает файл `.github/workflows/hexlet-check.yml` — не удаляйте и не переименовывайте ни его, ни репозиторий.
-
+Тесты запускаются автоматически на каждый push/PR. За запуск отвечает workflow `.github/workflows/hexlet-check.yml` — не удаляйте и не переименовывайте этот файл и репозиторий.
 </details>
 
-## О Хекслете
+---
 
-[Хекслет](https://ru.hexlet.io/) — школа программирования: авторские программы обучения с практикой, поддержкой наставников и реальными проектами, которые остаются в резюме. Этот репозиторий — один из таких проектов.
+### 🎓 О Хекслете
+
+[Хекслет](https://ru.hexlet.io/) — школа программирования с практическими проектами, код-ревью и поддержкой наставников. Данный репозиторий разработан в рамках проектного обучения.

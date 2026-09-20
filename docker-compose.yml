@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: hexparts
+      POSTGRES_PASSWORD: hexparts
+      POSTGRES_DB: pc_parts_shop
+    volumes:
+      - hexparts_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hexparts -d pc_parts_shop"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_SENTRY_DSN: "${NEXT_PUBLIC_SENTRY_DSN:-}"
+        SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN:-}"
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: "3000"
+      DATABASE_URL: postgresql://hexparts:hexparts@db:5432/pc_parts_shop
+      NEXT_PUBLIC_SENTRY_DSN: "${NEXT_PUBLIC_SENTRY_DSN:-}"
+      SENTRY_DSN: "${SENTRY_DSN:-}"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  hexparts_pg:

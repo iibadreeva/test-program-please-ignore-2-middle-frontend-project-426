@@ -1,0 +1,36 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const queryRaw = vi.fn();
+
+vi.mock("@/server/db", () => ({
+  prisma: {
+    $queryRaw: (...args: unknown[]) => queryRaw(...args),
+  },
+}));
+
+describe("GET /api/health", () => {
+  beforeEach(() => {
+    queryRaw.mockReset();
+  });
+
+  it("returns 200 when database responds", async () => {
+    queryRaw.mockResolvedValue([{ ok: 1 }]);
+    const { GET } = await import("./route");
+    const res = await GET();
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toEqual({ status: "ok" });
+    expect(queryRaw).toHaveBeenCalled();
+  });
+
+  it("returns 503 when database is unreachable", async () => {
+    queryRaw.mockRejectedValue(new Error("connection refused"));
+    // Re-import is cached; module already loaded — call GET again with failed mock
+    const { GET } = await import("./route");
+    const res = await GET();
+    expect(res.status).toBe(503);
+    const body = await res.json();
+    expect(body).toMatchObject({
+      error: { code: "INTERNAL_ERROR" },
+    });
+  });
+});
