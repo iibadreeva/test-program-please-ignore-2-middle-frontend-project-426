@@ -17,6 +17,7 @@ import {
   type ProductDetail,
   type ProductListResponse,
   type ProductSummary,
+  type PromoBlock,
   type UserPublic,
 } from "@/generated/api";
 import type { Endpoints } from "@/generated/api.types";
@@ -43,6 +44,7 @@ export type {
   ProductDetail,
   ProductListResponse,
   ProductSummary,
+  PromoBlock,
   UserPublic,
 };
 

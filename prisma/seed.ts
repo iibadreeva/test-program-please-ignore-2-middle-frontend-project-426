@@ -469,6 +469,28 @@ const pickupPoints = [
   { name: "Пункт HexParts · Север", address: "Москва, Ленинградский пр-т, 47" },
 ] as const;
 
+/** Home promo blocks — one product each, always in stock in the base catalog. */
+const promoBlocks = [
+  {
+    productSlug: "rtx-4070-super",
+    title: "Игры в 1440p без компромиссов",
+    text: "DLSS 3 и запас по трассировке — карта, с которой сборка сразу играет.",
+    sortOrder: 0,
+  },
+  {
+    productSlug: "ryzen-7-7800x3d",
+    title: "Игровой лидер на 3D V-Cache",
+    text: "Максимальный FPS в современных играх без переплаты за лишние ядра.",
+    sortOrder: 1,
+  },
+  {
+    productSlug: "samsung-990-pro-1tb",
+    title: "Быстрый SSD под систему и игры",
+    text: "PCIe 4.0 и терабайт места — загрузка игр перестаёт быть узким местом.",
+    sortOrder: 2,
+  },
+] as const;
+
 /** Postgres advisory lock so parallel container starts don't race on upserts. */
 const SEED_LOCK_KEY = 4_264_260_001;
 
@@ -556,13 +578,55 @@ async function seedCatalog() {
     ),
   );
 
+  const promoCount = await seedPromos();
+
   const withoutImage = products.filter((p) => resolveImageUrl(p) === null).length;
   const unavailable = products.filter((p) => p.stock <= 0).length;
 
   console.log(
     `Seeded ${categoryRecords.length} categories, ${brandRecords.length} brands, ` +
-      `${products.length} products (${withoutImage} without image, ${unavailable} unavailable).`,
+      `${products.length} products (${withoutImage} without image, ${unavailable} unavailable), ` +
+      `${promoCount} promo blocks.`,
   );
+}
+
+/** Upsert home promos by productId. Skips missing or out-of-stock products. */
+async function seedPromos(): Promise<number> {
+  let count = 0;
+
+  for (const promo of promoBlocks) {
+    const product = await prisma.product.findUnique({
+      where: { slug: promo.productSlug },
+      select: { id: true, stock: true },
+    });
+
+    if (!product) {
+      console.warn(`Promo seed skipped: product "${promo.productSlug}" not found.`);
+      continue;
+    }
+    if (product.stock <= 0) {
+      console.warn(`Promo seed skipped: product "${promo.productSlug}" is out of stock.`);
+      continue;
+    }
+
+    await prisma.promoBlock.upsert({
+      where: { productId: product.id },
+      create: {
+        title: promo.title,
+        text: promo.text,
+        sortOrder: promo.sortOrder,
+        productId: product.id,
+      },
+      update: {
+        title: promo.title,
+        text: promo.text,
+        sortOrder: promo.sortOrder,
+      },
+    });
+    count += 1;
+  }
+
+  return count;
 }
 
 main()

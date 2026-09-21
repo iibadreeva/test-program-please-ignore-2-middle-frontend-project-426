@@ -79,6 +79,10 @@ export namespace Schemas {
   export type PaginationMeta = { page: number; perPage: number; total: number; totalPages: number };
   export type ProductDetail = ProductSummary & { specs: Record<string, unknown> };
   export type ProductListResponse = { items: Array<ProductSummary>; meta: PaginationMeta };
+  /**
+   * Промо-блок главной страницы: текст плюс товар, на который он ведёт
+   */
+  export type PromoBlock = { id: string; title: string; text: string; product: ProductSummary };
   export type RegisterBody = { email: string; password: string; name?: string };
   export type UpdateCartItemBody = {
     /**
@@ -260,6 +264,14 @@ export namespace Endpoints {
     };
     responses: { 200: Schemas.ProductDetail; 404: Schemas.ErrorResponse };
   };
+  export type get_Home_listPromos = {
+    method: "GET";
+    path: "/promos";
+    requestFormat: "json";
+    responseFormat: "json";
+    parameters: never;
+    responses: { 200: Array<Schemas.PromoBlock> };
+  };
 
   // </Endpoints>
 }
@@ -283,6 +295,7 @@ export type EndpointByMethod = {
     "/pickup-points": Endpoints.get_Catalog_listPickupPoints;
     "/products": Endpoints.get_Catalog_listProducts;
     "/products/{slug}": Endpoints.get_Catalog_getProduct;
+    "/promos": Endpoints.get_Home_listPromos;
   };
   delete: {
     "/cart": Endpoints.delete_CartApi_clearCart;

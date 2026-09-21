@@ -5,6 +5,7 @@ info:
 tags:
   - name: Auth
   - name: Catalog
+  - name: Home
   - name: Cart
   - name: Orders
 paths:
@@ -419,6 +420,21 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       tags:
         - Catalog
+  /promos:
+    get:
+      operationId: Home_listPromos
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PromoBlock'
+      tags:
+        - Home
 components:
   schemas:
     AddCartItemBody:
@@ -737,6 +753,25 @@ components:
           $ref: '#/components/schemas/Category'
         brand:
           $ref: '#/components/schemas/Brand'
+    PromoBlock:
+      type: object
+      required:
+        - id
+        - title
+        - text
+        - product
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        text:
+          type: string
+        product:
+          allOf:
+            - $ref: '#/components/schemas/ProductSummary'
+          description: 'Товар всегда доступен к покупке: недоступные блоки не отдаются'
+      description: 'Промо-блок главной страницы: текст плюс товар, на который он ведёт'
     RegisterBody:
       type: object
       required:

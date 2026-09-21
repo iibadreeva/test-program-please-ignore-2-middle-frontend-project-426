@@ -72,14 +72,28 @@ model Product {
   brandId     String
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
-  category    Category   @relation(fields: [categoryId], references: [id])
-  brand       Brand      @relation(fields: [brandId], references: [id])
+  category    Category    @relation(fields: [categoryId], references: [id])
+  brand       Brand       @relation(fields: [brandId], references: [id])
   cartItems   CartItem[]
   orderItems  OrderItem[]
+  promoBlock  PromoBlock?
 
   @@index([categoryId])
   @@index([brandId])
   @@index([price])
+}
+
+model PromoBlock {
+  id        String   @id @default(cuid())
+  title     String
+  text      String
+  sortOrder Int      @default(0)
+  productId String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([sortOrder])
 }
 
 model Cart {

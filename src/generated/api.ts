@@ -115,6 +115,14 @@ export const ProductDetail = ProductSummary.and(z.strictObject({ specs: z.record
 export type ProductListResponse = __TypedOpenapi.Schemas.ProductListResponse;
 export const ProductListResponse = z.strictObject({ items: z.array(ProductSummary), meta: PaginationMeta });
 
+export type PromoBlock = __TypedOpenapi.Schemas.PromoBlock;
+export const PromoBlock = z.strictObject({
+  id: z.string(),
+  title: z.string(),
+  text: z.string(),
+  product: ProductSummary,
+});
+
 export type RegisterBody = __TypedOpenapi.Schemas.RegisterBody;
 export const RegisterBody = z.strictObject({
   email: z.email().min(1),
@@ -318,6 +326,16 @@ export const get_Catalog_getProduct = {
   responses: { 200: ProductDetail, 404: ErrorResponse },
 };
 
+export type get_Home_listPromos = __TypedOpenapi.Endpoints.get_Home_listPromos;
+export const get_Home_listPromos = {
+  method: z.literal("GET"),
+  path: z.literal("/promos"),
+  requestFormat: z.literal("json"),
+  responseFormat: z.literal("json"),
+  parameters: z.never(),
+  responses: { 200: z.array(PromoBlock) },
+};
+
 // </Endpoints>
 
 // <EndpointByMethod>
@@ -339,6 +357,7 @@ export const EndpointByMethod = {
     "/pickup-points": get_Catalog_listPickupPoints,
     "/products": get_Catalog_listProducts,
     "/products/{slug}": get_Catalog_getProduct,
+    "/promos": get_Home_listPromos,
   },
   delete: {
     "/cart": delete_CartApi_clearCart,

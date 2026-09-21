@@ -87,6 +87,15 @@ model ProductListResponse {
   meta: PaginationMeta;
 }
 
+@doc("Промо-блок главной страницы: текст плюс товар, на который он ведёт")
+model PromoBlock {
+  id: string;
+  title: string;
+  text: string;
+  /** Товар всегда доступен к покупке: недоступные блоки не отдаются */
+  product: ProductSummary;
+}
+
 model CartItem {
   id: string;
   productId: string;
@@ -262,6 +271,15 @@ interface Catalog {
   @get
   @route("/pickup-points")
   listPickupPoints(): PickupPoint[];
+}
+
+// --- Home ---
+
+@tag("Home")
+interface Home {
+  @get
+  @route("/promos")
+  listPromos(): PromoBlock[];
 }
 
 // --- Cart ---
