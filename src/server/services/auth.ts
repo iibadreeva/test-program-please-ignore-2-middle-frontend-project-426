@@ -8,7 +8,6 @@ import {
   getCurrentUser,
   type PublicUser,
 } from "@/server/auth/session";
-import { mergeGuestCartIntoUser } from "@/server/services/cart";
 import { loginBodySchema, registerBodySchema } from "@/shared/api-contract";
 
 export const registerSchema = registerBodySchema;
@@ -60,7 +59,6 @@ export async function registerUser(input: RegisterInput): Promise<PublicUser> {
 
   const publicUser = toPublic(user);
   await createSession(publicUser);
-  await mergeGuestCartIntoUser(user.id);
   return publicUser;
 }
 
@@ -80,7 +78,6 @@ export async function loginUser(input: LoginInput): Promise<PublicUser> {
 
   const publicUser = toPublic(user);
   await createSession(publicUser);
-  await mergeGuestCartIntoUser(user.id);
   return publicUser;
 }
 

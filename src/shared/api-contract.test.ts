@@ -1,21 +1,57 @@
 import { describe, expect, it } from "vitest";
 import {
-  addCartItemBodySchema,
+  createOrderBodySchema,
   listProductsQuerySchema,
   loginBodySchema,
   PRODUCTS_PER_PAGE,
   registerBodySchema,
 } from "@/shared/api-contract";
 
-describe("addCartItemBodySchema", () => {
-  it("rejects empty productId", () => {
-    const parsed = addCartItemBodySchema.safeParse({ productId: "", quantity: 1 });
+describe("createOrderBodySchema", () => {
+  it("requires at least one item", () => {
+    const parsed = createOrderBodySchema.safeParse({
+      deliveryType: "DELIVERY",
+      recipientName: "Иван",
+      phone: "+79990001122",
+      items: [],
+    });
     expect(parsed.success).toBe(false);
   });
 
-  it("accepts non-empty productId", () => {
-    const parsed = addCartItemBodySchema.safeParse({ productId: "prod-1" });
+  it("accepts order body with items", () => {
+    const parsed = createOrderBodySchema.safeParse({
+      deliveryType: "DELIVERY",
+      recipientName: "Иван",
+      phone: "+79990001122",
+      items: [{ productId: "prod-1", quantity: 2 }],
+    });
     expect(parsed.success).toBe(true);
+  });
+
+  it("rejects more than MAX_CART_IDS line items", async () => {
+    const { MAX_CART_IDS } = await import("@/shared/constants");
+    const items = Array.from({ length: MAX_CART_IDS + 1 }, (_, i) => ({
+      productId: `prod-${i}`,
+      quantity: 1,
+    }));
+    const parsed = createOrderBodySchema.safeParse({
+      deliveryType: "DELIVERY",
+      recipientName: "Иван",
+      phone: "+79990001122",
+      items,
+    });
+    expect(parsed.success).toBe(false);
+  });
+
+  it("rejects quantity above MAX_CART_LINE_QTY", async () => {
+    const { MAX_CART_LINE_QTY } = await import("@/shared/constants");
+    const parsed = createOrderBodySchema.safeParse({
+      deliveryType: "DELIVERY",
+      recipientName: "Иван",
+      phone: "+79990001122",
+      items: [{ productId: "prod-1", quantity: MAX_CART_LINE_QTY + 1 }],
+    });
+    expect(parsed.success).toBe(false);
   });
 });
 

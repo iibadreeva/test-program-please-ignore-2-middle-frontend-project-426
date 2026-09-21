@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ProductImage } from "@/components/product-image";
+import { ClearCartOnPlaced } from "@/features/cart/clear-cart-on-placed";
 import { formatPrice } from "@/shared/format";
 import { requireUser } from "@/server/auth/session";
 import { getOrderById, orderStatusLabel } from "@/server/services/orders";
@@ -23,14 +24,7 @@ export default async function AccountOrderDetailPage({ params, searchParams }: P
 
   return (
     <div data-testid="order-detail-page" className="space-y-6">
-      {sp.placed === "1" ? (
-        <p
-          className="border border-accent/40 bg-surface px-4 py-3 text-sm text-accent"
-          data-testid="order-placed-banner"
-        >
-          Заказ оформлен. Спасибо!
-        </p>
-      ) : null}
+      <ClearCartOnPlaced orderId={order.id} placed={sp.placed === "1"} />
 
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>

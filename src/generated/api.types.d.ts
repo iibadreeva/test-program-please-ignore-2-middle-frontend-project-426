@@ -1,43 +1,14 @@
 export namespace Schemas {
   // <Schemas>
-  export type AddCartItemBody = {
+  export type Brand = { id: string; slug: string; name: string };
+  export type Category = { id: string; slug: string; name: string };
+  export type OrderLineInput = {
     productId: string;
     /**
-     * Количество единиц товара
+     * Количество единиц товара (лимит совпадает с MAX_CART_LINE_QTY на клиенте)
      */
-    quantity?: number;
+    quantity: number;
   };
-  export type Brand = { id: string; slug: string; name: string };
-  /**
-   * Денежная сумма в целых рублях (десятичная строка без копеек, без ведущих нулей)
-   */
-  export type Money = string;
-  export type Category = { id: string; slug: string; name: string };
-  export type ProductSummary = {
-    id: string;
-    slug: string;
-    title: string;
-    /**
-     * Краткое описание для карточки в списке
-     */
-    description: string;
-    price: Money;
-    oldPrice?: Money;
-    /**
-     * null означает, что изображения нет — клиент показывает заглушку
-     */
-    imageUrl: string | null;
-    stock: number;
-    /**
-     * Товар доступен к покупке (остаток больше нуля)
-     */
-    available: boolean;
-    rating: number;
-    category: Category;
-    brand: Brand;
-  };
-  export type CartItem = { id: string; productId: string; quantity: number; product: ProductSummary; lineTotal: Money };
-  export type Cart = { id: string; items: Array<CartItem>; total: Money; itemsCount: number };
   export type CreateOrderBody = {
     deliveryType: "DELIVERY" | "PICKUP";
     address?: string;
@@ -45,10 +16,18 @@ export namespace Schemas {
     recipientName: string;
     phone: string;
     comment?: string;
+    /**
+     * Состав заказа с клиента (корзина живёт в localStorage); max = MAX_CART_IDS
+     */
+    items: Array<OrderLineInput>;
   };
   export type ErrorBody = { code: string; message: string; details?: unknown };
   export type ErrorResponse = { error: ErrorBody };
   export type LoginBody = { email: string; password: string };
+  /**
+   * Денежная сумма в целых рублях (десятичная строка без копеек, без ведущих нулей)
+   */
+  export type Money = string;
   export type PickupPoint = { id: string; name: string; address: string };
   export type OrderItem = {
     id: string;
@@ -77,6 +56,29 @@ export namespace Schemas {
     items: Array<OrderItem>;
   };
   export type PaginationMeta = { page: number; perPage: number; total: number; totalPages: number };
+  export type ProductSummary = {
+    id: string;
+    slug: string;
+    title: string;
+    /**
+     * Краткое описание для карточки в списке
+     */
+    description: string;
+    price: Money;
+    oldPrice?: Money;
+    /**
+     * null означает, что изображения нет — клиент показывает заглушку
+     */
+    imageUrl: string | null;
+    stock: number;
+    /**
+     * Товар доступен к покупке (остаток больше нуля)
+     */
+    available: boolean;
+    rating: number;
+    category: Category;
+    brand: Brand;
+  };
   export type ProductDetail = ProductSummary & { specs: Record<string, unknown> };
   export type ProductListResponse = { items: Array<ProductSummary>; meta: PaginationMeta };
   /**
@@ -84,12 +86,6 @@ export namespace Schemas {
    */
   export type PromoBlock = { id: string; title: string; text: string; product: ProductSummary };
   export type RegisterBody = { email: string; password: string; name?: string };
-  export type UpdateCartItemBody = {
-    /**
-     * Количество единиц товара
-     */
-    quantity: number;
-  };
   export type UserPublic = { id: string; email: string; name: string };
 
   // </Schemas>
@@ -141,54 +137,6 @@ export namespace Endpoints {
     responseFormat: "json";
     parameters: never;
     responses: { 200: Array<Schemas.Brand> };
-  };
-  export type get_CartApi_getCart = {
-    method: "GET";
-    path: "/cart";
-    requestFormat: "json";
-    responseFormat: "json";
-    parameters: never;
-    responses: { 200: Schemas.Cart };
-  };
-  export type delete_CartApi_clearCart = {
-    method: "DELETE";
-    path: "/cart";
-    requestFormat: "json";
-    responseFormat: "json";
-    parameters: never;
-    responses: { 204: unknown };
-  };
-  export type post_CartApi_addItem = {
-    method: "POST";
-    path: "/cart/items";
-    requestFormat: "json";
-    responseFormat: "json";
-    parameters: {
-      body: Schemas.AddCartItemBody;
-    };
-    responses: { 201: Schemas.Cart; 400: Schemas.ErrorResponse };
-  };
-  export type patch_CartApi_updateItem = {
-    method: "PATCH";
-    path: "/cart/items/{id}";
-    requestFormat: "json";
-    responseFormat: "json";
-    parameters: {
-      path: { id: string };
-
-      body: Schemas.UpdateCartItemBody;
-    };
-    responses: { 200: Schemas.Cart; 404: Schemas.ErrorResponse };
-  };
-  export type delete_CartApi_removeItem = {
-    method: "DELETE";
-    path: "/cart/items/{id}";
-    requestFormat: "json";
-    responseFormat: "json";
-    parameters: {
-      path: { id: string };
-    };
-    responses: { 200: Schemas.Cart; 404: Schemas.ErrorResponse };
   };
   export type get_Catalog_listCategories = {
     method: "GET";
@@ -282,13 +230,11 @@ export type EndpointByMethod = {
     "/auth/login": Endpoints.post_Auth_login;
     "/auth/logout": Endpoints.post_Auth_logout;
     "/auth/register": Endpoints.post_Auth_register;
-    "/cart/items": Endpoints.post_CartApi_addItem;
     "/orders": Endpoints.post_Orders_create;
   };
   get: {
     "/auth/me": Endpoints.get_Auth_me;
     "/brands": Endpoints.get_Catalog_listBrands;
-    "/cart": Endpoints.get_CartApi_getCart;
     "/categories": Endpoints.get_Catalog_listCategories;
     "/orders": Endpoints.get_Orders_list;
     "/orders/{id}": Endpoints.get_Orders_get;
@@ -297,13 +243,6 @@ export type EndpointByMethod = {
     "/products/{slug}": Endpoints.get_Catalog_getProduct;
     "/promos": Endpoints.get_Home_listPromos;
   };
-  delete: {
-    "/cart": Endpoints.delete_CartApi_clearCart;
-    "/cart/items/{id}": Endpoints.delete_CartApi_removeItem;
-  };
-  patch: {
-    "/cart/items/{id}": Endpoints.patch_CartApi_updateItem;
-  };
 };
 
 // </EndpointByMethod>
@@ -311,6 +250,4 @@ export type EndpointByMethod = {
 // <EndpointByMethod.Shorthands>
 export type PostEndpoints = EndpointByMethod["post"];
 export type GetEndpoints = EndpointByMethod["get"];
-export type DeleteEndpoints = EndpointByMethod["delete"];
-export type PatchEndpoints = EndpointByMethod["patch"];
 // </EndpointByMethod.Shorthands>

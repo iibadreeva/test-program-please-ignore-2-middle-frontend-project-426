@@ -4,52 +4,16 @@ import type * as __TypedOpenapi from "./api.types.js";
 import { z } from "zod";
 
 // <Schemas>
-export type AddCartItemBody = __TypedOpenapi.Schemas.AddCartItemBody;
-export const AddCartItemBody = z.strictObject({
-  productId: z.string().min(1),
-  quantity: z.number().int().min(1).optional(),
-});
-
 export type Brand = __TypedOpenapi.Schemas.Brand;
 export const Brand = z.strictObject({ id: z.string(), slug: z.string(), name: z.string() });
-
-export type Money = __TypedOpenapi.Schemas.Money;
-export const Money = z.string().regex(new RegExp("^(0|[1-9][0-9]*)$"));
 
 export type Category = __TypedOpenapi.Schemas.Category;
 export const Category = z.strictObject({ id: z.string(), slug: z.string(), name: z.string() });
 
-export type ProductSummary = __TypedOpenapi.Schemas.ProductSummary;
-export const ProductSummary = z.strictObject({
-  id: z.string(),
-  slug: z.string(),
-  title: z.string(),
-  description: z.string(),
-  price: Money,
-  oldPrice: Money.optional(),
-  imageUrl: z.string().nullable(),
-  stock: z.number().int(),
-  available: z.boolean(),
-  rating: z.number(),
-  category: Category,
-  brand: Brand,
-});
-
-export type CartItem = __TypedOpenapi.Schemas.CartItem;
-export const CartItem = z.strictObject({
-  id: z.string(),
-  productId: z.string(),
-  quantity: z.number().int(),
-  product: ProductSummary,
-  lineTotal: Money,
-});
-
-export type Cart = __TypedOpenapi.Schemas.Cart;
-export const Cart = z.strictObject({
-  id: z.string(),
-  items: z.array(CartItem),
-  total: Money,
-  itemsCount: z.number().int(),
+export type OrderLineInput = __TypedOpenapi.Schemas.OrderLineInput;
+export const OrderLineInput = z.strictObject({
+  productId: z.string().min(1),
+  quantity: z.number().int().min(1).max(99),
 });
 
 export type CreateOrderBody = __TypedOpenapi.Schemas.CreateOrderBody;
@@ -60,6 +24,7 @@ export const CreateOrderBody = z.strictObject({
   recipientName: z.string(),
   phone: z.string(),
   comment: z.string().optional(),
+  items: z.array(OrderLineInput).min(1).max(100),
 });
 
 export type ErrorBody = __TypedOpenapi.Schemas.ErrorBody;
@@ -70,6 +35,9 @@ export const ErrorResponse = z.strictObject({ error: ErrorBody });
 
 export type LoginBody = __TypedOpenapi.Schemas.LoginBody;
 export const LoginBody = z.strictObject({ email: z.email().min(1), password: z.string().min(1) });
+
+export type Money = __TypedOpenapi.Schemas.Money;
+export const Money = z.string().regex(new RegExp("^(0|[1-9][0-9]*)$"));
 
 export type PickupPoint = __TypedOpenapi.Schemas.PickupPoint;
 export const PickupPoint = z.strictObject({ id: z.string(), name: z.string(), address: z.string() });
@@ -109,6 +77,22 @@ export const PaginationMeta = z.strictObject({
   totalPages: z.number().int(),
 });
 
+export type ProductSummary = __TypedOpenapi.Schemas.ProductSummary;
+export const ProductSummary = z.strictObject({
+  id: z.string(),
+  slug: z.string(),
+  title: z.string(),
+  description: z.string(),
+  price: Money,
+  oldPrice: Money.optional(),
+  imageUrl: z.string().nullable(),
+  stock: z.number().int(),
+  available: z.boolean(),
+  rating: z.number(),
+  category: Category,
+  brand: Brand,
+});
+
 export type ProductDetail = __TypedOpenapi.Schemas.ProductDetail;
 export const ProductDetail = ProductSummary.and(z.strictObject({ specs: z.record(z.string(), z.unknown()) }));
 
@@ -129,9 +113,6 @@ export const RegisterBody = z.strictObject({
   password: z.string().min(8),
   name: z.string().min(2).max(80).optional(),
 });
-
-export type UpdateCartItemBody = __TypedOpenapi.Schemas.UpdateCartItemBody;
-export const UpdateCartItemBody = z.strictObject({ quantity: z.number().int().min(1) });
 
 export type UserPublic = __TypedOpenapi.Schemas.UserPublic;
 export const UserPublic = z.strictObject({ id: z.string(), email: z.string(), name: z.string() });
@@ -187,56 +168,6 @@ export const get_Catalog_listBrands = {
   responseFormat: z.literal("json"),
   parameters: z.never(),
   responses: { 200: z.array(Brand) },
-};
-
-export type get_CartApi_getCart = __TypedOpenapi.Endpoints.get_CartApi_getCart;
-export const get_CartApi_getCart = {
-  method: z.literal("GET"),
-  path: z.literal("/cart"),
-  requestFormat: z.literal("json"),
-  responseFormat: z.literal("json"),
-  parameters: z.never(),
-  responses: { 200: Cart },
-};
-
-export type delete_CartApi_clearCart = __TypedOpenapi.Endpoints.delete_CartApi_clearCart;
-export const delete_CartApi_clearCart = {
-  method: z.literal("DELETE"),
-  path: z.literal("/cart"),
-  requestFormat: z.literal("json"),
-  responseFormat: z.literal("json"),
-  parameters: z.never(),
-  responses: { 204: z.unknown() },
-};
-
-export type post_CartApi_addItem = __TypedOpenapi.Endpoints.post_CartApi_addItem;
-export const post_CartApi_addItem = {
-  method: z.literal("POST"),
-  path: z.literal("/cart/items"),
-  requestFormat: z.literal("json"),
-  responseFormat: z.literal("json"),
-  parameters: { body: AddCartItemBody },
-  responses: { 201: Cart, 400: ErrorResponse },
-};
-
-export type patch_CartApi_updateItem = __TypedOpenapi.Endpoints.patch_CartApi_updateItem;
-export const patch_CartApi_updateItem = {
-  method: z.literal("PATCH"),
-  path: z.literal("/cart/items/{id}"),
-  requestFormat: z.literal("json"),
-  responseFormat: z.literal("json"),
-  parameters: { path: z.strictObject({ id: z.string() }), body: UpdateCartItemBody },
-  responses: { 200: Cart, 404: ErrorResponse },
-};
-
-export type delete_CartApi_removeItem = __TypedOpenapi.Endpoints.delete_CartApi_removeItem;
-export const delete_CartApi_removeItem = {
-  method: z.literal("DELETE"),
-  path: z.literal("/cart/items/{id}"),
-  requestFormat: z.literal("json"),
-  responseFormat: z.literal("json"),
-  parameters: { path: z.strictObject({ id: z.string() }) },
-  responses: { 200: Cart, 404: ErrorResponse },
 };
 
 export type get_Catalog_listCategories = __TypedOpenapi.Endpoints.get_Catalog_listCategories;
@@ -344,13 +275,11 @@ export const EndpointByMethod = {
     "/auth/login": post_Auth_login,
     "/auth/logout": post_Auth_logout,
     "/auth/register": post_Auth_register,
-    "/cart/items": post_CartApi_addItem,
     "/orders": post_Orders_create,
   },
   get: {
     "/auth/me": get_Auth_me,
     "/brands": get_Catalog_listBrands,
-    "/cart": get_CartApi_getCart,
     "/categories": get_Catalog_listCategories,
     "/orders": get_Orders_list,
     "/orders/{id}": get_Orders_get,
@@ -358,13 +287,6 @@ export const EndpointByMethod = {
     "/products": get_Catalog_listProducts,
     "/products/{slug}": get_Catalog_getProduct,
     "/promos": get_Home_listPromos,
-  },
-  delete: {
-    "/cart": delete_CartApi_clearCart,
-    "/cart/items/{id}": delete_CartApi_removeItem,
-  },
-  patch: {
-    "/cart/items/{id}": patch_CartApi_updateItem,
   },
 } satisfies {
   [M in keyof __TypedOpenapi.EndpointByMethod]: { [P in keyof __TypedOpenapi.EndpointByMethod[M]]: unknown };
@@ -375,6 +297,4 @@ export type EndpointByMethod = __TypedOpenapi.EndpointByMethod;
 // <EndpointByMethod.Shorthands>
 export type PostEndpoints = EndpointByMethod["post"];
 export type GetEndpoints = EndpointByMethod["get"];
-export type DeleteEndpoints = EndpointByMethod["delete"];
-export type PatchEndpoints = EndpointByMethod["patch"];
 // </EndpointByMethod.Shorthands>

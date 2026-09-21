@@ -1,14 +1,10 @@
 import { z } from "zod";
 import {
-  AddCartItemBody,
   CreateOrderBody,
   LoginBody,
   Money,
   RegisterBody,
-  UpdateCartItemBody,
   type Brand,
-  type Cart,
-  type CartItem,
   type Category,
   type ErrorBody,
   type ErrorResponse,
@@ -24,8 +20,6 @@ import type { Endpoints } from "@/generated/api.types";
 
 export {
   Money,
-  AddCartItemBody as addCartItemBodySchema,
-  UpdateCartItemBody as updateCartItemBodySchema,
   CreateOrderBody as createOrderBodySchema,
   RegisterBody as registerBodySchema,
   LoginBody as loginBodySchema,
@@ -34,8 +28,6 @@ export {
 export type {
   Money as MoneyString,
   Brand,
-  Cart,
-  CartItem,
   Category,
   ErrorBody,
   ErrorResponse,

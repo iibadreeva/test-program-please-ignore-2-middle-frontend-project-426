@@ -1,10 +1,10 @@
 import { DeliveryType, OrderStatus, Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/server/db";
-import { getOrCreateCart } from "@/server/services/cart";
 import { createOrderBodySchema } from "@/shared/api-contract";
 import { toMoney } from "@/shared/money";
 import type { Order as ContractOrder } from "@/shared/api-contract";
+import { MAX_CART_IDS, MAX_CART_LINE_QTY } from "@/shared/constants";
 
 export const createOrderSchema = createOrderBodySchema
   .extend({
@@ -40,6 +40,44 @@ export const createOrderSchema = createOrderBodySchema
   });
 
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
+
+export type OrderLineInput = { productId: string; quantity: number };
+
+export class OrderError extends Error {
+  constructor(
+    public code: "VALIDATION_ERROR" | "UNAUTHORIZED" | "NOT_FOUND" | "CONFLICT",
+    message: string,
+  ) {
+    super(message);
+    this.name = "OrderError";
+  }
+}
+
+/** Схлопнуть дубли productId, чтобы нельзя было обойти проверку остатка. */
+export function aggregateOrderItems(items: OrderLineInput[]): OrderLineInput[] {
+  const byId = new Map<string, number>();
+  for (const item of items) {
+    byId.set(item.productId, (byId.get(item.productId) ?? 0) + item.quantity);
+  }
+  if (byId.size > MAX_CART_IDS) {
+    throw new OrderError(
+      "VALIDATION_ERROR",
+      `В заказе не больше ${MAX_CART_IDS} позиций`,
+    );
+  }
+  return [...byId.entries()].map(([productId, quantity]) => ({
+    productId,
+    quantity: Math.min(quantity, MAX_CART_LINE_QTY),
+  }));
+}
+
+/** Аргументы Prisma для атомарного decrement остатка, который не уходит в минус. */
+export function stockDecrementArgs(productId: string, quantity: number) {
+  return {
+    where: { id: productId, stock: { gte: quantity } },
+    data: { stock: { decrement: quantity } },
+  };
+}
 
 const orderInclude = {
   items: { orderBy: { id: "asc" as const } },
@@ -81,16 +119,6 @@ export function serializeOrder(order: OrderWithRelations): SerializedOrder {
   };
 }
 
-export class OrderError extends Error {
-  constructor(
-    public code: "VALIDATION_ERROR" | "UNAUTHORIZED" | "NOT_FOUND" | "CONFLICT",
-    message: string,
-  ) {
-    super(message);
-    this.name = "OrderError";
-  }
-}
-
 export async function createOrder(userId: string, input: CreateOrderInput): Promise<SerializedOrder> {
   const data = createOrderSchema.parse(input);
 
@@ -101,14 +129,14 @@ export async function createOrder(userId: string, input: CreateOrderInput): Prom
     }
   }
 
-  const cart = await getOrCreateCart(userId);
-  if (cart.items.length === 0) {
+  const items = aggregateOrderItems(data.items);
+  if (items.length === 0) {
     throw new OrderError("VALIDATION_ERROR", "Корзина пуста");
   }
 
   const order = await prisma.$transaction(
     async (tx) => {
-      const productIds = cart.items.map((item) => item.productId);
+      const productIds = items.map((item) => item.productId);
       const products = await tx.product.findMany({
         where: { id: { in: productIds } },
       });
@@ -124,7 +152,7 @@ export async function createOrder(userId: string, input: CreateOrderInput): Prom
 
       let total = 0;
 
-      for (const item of cart.items) {
+      for (const item of items) {
         const product = byId.get(item.productId);
         if (!product) {
           throw new OrderError("CONFLICT", `Товар недоступен: ${item.productId}`);
@@ -147,15 +175,18 @@ export async function createOrder(userId: string, input: CreateOrderInput): Prom
       }
 
       await Promise.all(
-        lines.map((line) =>
-          tx.product.update({
-            where: { id: line.productId },
-            data: { stock: { decrement: line.quantity } },
-          }),
-        ),
+        lines.map(async (line) => {
+          const updated = await tx.product.updateMany(stockDecrementArgs(line.productId, line.quantity));
+          if (updated.count !== 1) {
+            throw new OrderError(
+              "CONFLICT",
+              `Недостаточно «${line.titleSnapshot}»: товар уже разобрали.`,
+            );
+          }
+        }),
       );
 
-      const created = await tx.order.create({
+      return tx.order.create({
         data: {
           userId,
           status: OrderStatus.NEW,
@@ -172,10 +203,6 @@ export async function createOrder(userId: string, input: CreateOrderInput): Prom
         },
         include: orderInclude,
       });
-
-      await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
-
-      return created;
     },
     { timeout: 20_000, maxWait: 10_000 },
   );

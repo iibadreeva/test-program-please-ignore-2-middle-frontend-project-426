@@ -3,6 +3,7 @@ import { prisma } from "@/server/db";
 import { toMoney } from "@/shared/money";
 import { PRODUCTS_PER_PAGE } from "@/shared/api-contract";
 import type { ProductDetail, ProductSummary } from "@/shared/api-contract";
+import { MAX_CART_IDS } from "@/shared/constants";
 
 export type ProductSort = "price_asc" | "price_desc" | "rating_desc" | "newest";
 
@@ -34,7 +35,7 @@ const productInclude = {
 
 export type ProductWithRelations = Prisma.ProductGetPayload<{ include: typeof productInclude }>;
 
-/** A product is available for purchase while there is stock left. */
+/** Товар доступен к покупке, пока есть остаток. */
 export function isAvailable(product: { stock: number }): boolean {
   return product.stock > 0;
 }
@@ -72,8 +73,8 @@ export function serializeProduct(product: ProductWithRelations): ProductDetail {
 }
 
 /**
- * Builds the WHERE clause for the four filter axes. Kept free of Prisma calls so
- * the filter combination can be unit-tested without a database.
+ * Собирает WHERE по четырём осям фильтров. Без вызовов Prisma — комбинацию
+ * фильтров можно юнит-тестировать без базы.
  */
 export function buildProductWhere(input: ListProductsInput): Prisma.ProductWhereInput {
   const where: Prisma.ProductWhereInput = {};
@@ -102,8 +103,8 @@ export function buildProductWhere(input: ListProductsInput): Prisma.ProductWhere
 }
 
 /**
- * The `id` tiebreaker keeps paging stable: seeded products share near-identical
- * `createdAt` and equal prices, so a single sort key leaves the order undefined.
+ * Тай-брейкер по `id` стабилизирует пагинацию: у сидированных товаров почти
+ * одинаковые `createdAt` и цены, один ключ сортировки оставляет порядок неопределённым.
  */
 export function buildProductOrderBy(
   sort: ProductSort = "newest",
@@ -121,8 +122,8 @@ export function buildProductOrderBy(
 }
 
 /**
- * Clamps the requested page into the existing range so an out-of-range page
- * shows the last page instead of an empty list.
+ * Клампит запрошенную страницу в существующий диапазон: выход за пределы
+ * показывает последнюю страницу, а не пустой список.
  */
 export function normalizePagination(input: {
   page?: number;
@@ -153,7 +154,7 @@ export async function listPickupPoints() {
 export async function listProducts(input: ListProductsInput = {}) {
   const where = buildProductWhere(input);
 
-  // Count first: the page number can only be clamped once the total is known.
+  // Сначала count: номер страницы можно клампить только зная total.
   const total = await prisma.product.count({ where });
   const meta = normalizePagination({ page: input.page, perPage: input.perPage, total });
 
@@ -174,4 +175,20 @@ export async function getProductBySlug(slug: string) {
     include: productInclude,
   });
   return product ? serializeProduct(product) : null;
+}
+
+/** Разрешить refs корзины в актуальные ProductSummary. Порядок как в `ids`. */
+export async function listProductsByIds(ids: string[]): Promise<ProductSummary[]> {
+  const unique = [...new Set(ids.filter((id) => id.length > 0))].slice(0, MAX_CART_IDS);
+  if (unique.length === 0) return [];
+
+  const products = await prisma.product.findMany({
+    where: { id: { in: unique } },
+    include: productInclude,
+  });
+  const byId = new Map(products.map((product) => [product.id, serializeProductSummary(product)]));
+  return unique.flatMap((id) => {
+    const product = byId.get(id);
+    return product ? [product] : [];
+  });
 }

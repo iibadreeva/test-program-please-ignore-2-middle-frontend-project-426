@@ -1,26 +1,35 @@
 "use client";
 
 import Link from "next/link";
-import {
-  useCartError,
-  useCartItems,
-  useCartPending,
-  useCartStore,
-  useCartTotal,
-} from "@/features/cart/store-provider";
+import { useCartMerged } from "@/features/cart/use-cart-merged";
+import { useCartStore } from "@/features/cart/store";
 import { ProductImage } from "@/components/product-image";
 import { formatPrice } from "@/shared/format";
 
 export function CartView() {
-  const items = useCartItems();
-  const total = useCartTotal();
-  const pending = useCartPending();
-  const error = useCartError();
+  const { hydrated, refs, merged, status, error, pending } = useCartMerged();
   const setQuantity = useCartStore((s) => s.setQuantity);
   const remove = useCartStore((s) => s.remove);
   const clear = useCartStore((s) => s.clear);
 
-  if (items.length === 0) {
+  if (!hydrated || pending) {
+    return (
+      <div className="border border-border bg-surface p-8 text-muted" data-testid="cart-loading">
+        Загружаем корзину…
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="border border-border bg-surface p-8 text-danger" data-testid="cart-error" role="alert">
+        {error}
+      </div>
+    );
+  }
+
+  // Недоступные refs убирает clamp в useCartMerged; после готовности каталога считаем пустой.
+  if (refs.length === 0 || (status === "ready" && merged.lines.length === 0)) {
     return (
       <div className="border border-border bg-surface p-8" data-testid="cart-empty">
         <p className="text-muted">Корзина пуста.</p>
@@ -32,17 +41,11 @@ export function CartView() {
   }
 
   return (
-    <div className="space-y-6" aria-busy={pending}>
-      {error ? (
-        <p className="text-sm text-danger" role="alert" data-testid="cart-error">
-          {error}
-        </p>
-      ) : null}
-
+    <div className="space-y-6" aria-busy={status === "loading"}>
       <ul className="space-y-4" data-testid="cart-items">
-        {items.map((item) => (
+        {merged.lines.map((item) => (
           <li
-            key={item.id}
+            key={item.productId}
             className="grid gap-4 border border-border bg-surface p-4 sm:grid-cols-[96px_1fr_auto]"
             data-testid="cart-item"
           >
@@ -73,20 +76,18 @@ export function CartView() {
                     onChange={(e) => {
                       const value = Number(e.target.value);
                       if (Number.isInteger(value) && value >= 1) {
-                        void setQuantity(item.id, value);
+                        setQuantity(item.productId, Math.min(value, item.product.stock));
                       }
                     }}
                     className="ml-2 w-20 border border-border bg-bg px-2 py-1 font-mono text-text"
-                    data-testid="cart-item-quantity"
-                    disabled={pending}
+                    data-testid="cart-item-qty"
                   />
                 </label>
                 <button
                   type="button"
                   className="text-sm text-danger hover:underline"
                   data-testid="cart-item-remove"
-                  onClick={() => void remove(item.id)}
-                  disabled={pending}
+                  onClick={() => remove(item.productId)}
                 >
                   Удалить
                 </button>
@@ -104,20 +105,19 @@ export function CartView() {
           type="button"
           className="text-sm text-muted hover:text-danger"
           data-testid="cart-clear"
-          onClick={() => void clear()}
-          disabled={pending}
+          onClick={() => clear()}
         >
           Очистить корзину
         </button>
         <div className="text-right">
           <p className="text-sm text-muted">Итого</p>
           <p className="font-mono text-2xl text-accent" data-testid="cart-total">
-            {formatPrice(total)}
+            {formatPrice(merged.total)}
           </p>
           <Link
             href="/checkout"
             className="mt-3 inline-block bg-accent px-5 py-2.5 font-medium text-bg hover:bg-accent-dim"
-            data-testid="cart-checkout-link"
+            data-testid="cart-checkout"
           >
             Оформить заказ
           </Link>

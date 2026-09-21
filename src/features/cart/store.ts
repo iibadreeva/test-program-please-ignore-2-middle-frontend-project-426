@@ -1,127 +1,84 @@
-import { createStore, type StoreApi } from "zustand/vanilla";
-import {
-  addToCartAction,
-  clearCartAction,
-  removeCartItemAction,
-  updateCartItemAction,
-} from "@/features/cart-actions";
-import type { SerializedCart } from "@/server/services/cart";
-import { fromMoney, toMoney } from "@/shared/money";
+"use client";
 
-export type CartStoreState = {
-  cart: SerializedCart;
-  pending: boolean;
-  error: string | null;
-  setCart: (cart: SerializedCart) => void;
-  add: (productId: string, quantity?: number) => Promise<string | null>;
-  setQuantity: (itemId: string, quantity: number) => Promise<string | null>;
-  remove: (itemId: string) => Promise<string | null>;
-  clear: () => Promise<string | null>;
+import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
+import {
+  addRef,
+  CART_STORAGE_KEY,
+  normalizeRefs,
+  removeRef,
+  setRefQuantity,
+  type CartRef,
+} from "@/features/cart/cart-items";
+
+type CartStoreState = {
+  refs: CartRef[];
+  hydrated: boolean;
+  setHydrated: (value: boolean) => void;
+  add: (productId: string, quantity?: number) => void;
+  setQuantity: (productId: string, quantity: number) => void;
+  remove: (productId: string) => void;
+  clear: () => void;
+  replaceRefs: (refs: CartRef[]) => void;
 };
 
-function emptyCart(): SerializedCart {
-  return { id: "empty", items: [], total: toMoney(0), itemsCount: 0 };
+export const useCartStore = create<CartStoreState>()(
+  persist(
+    (set, get) => ({
+      refs: [],
+      hydrated: false,
+
+      setHydrated(value) {
+        set({ hydrated: value });
+      },
+
+      add(productId, quantity = 1) {
+        set({ refs: addRef(get().refs, productId, quantity) });
+      },
+
+      setQuantity(productId, quantity) {
+        set({ refs: setRefQuantity(get().refs, productId, quantity) });
+      },
+
+      remove(productId) {
+        set({ refs: removeRef(get().refs, productId) });
+      },
+
+      clear() {
+        set({ refs: [] });
+      },
+
+      replaceRefs(next) {
+        set({ refs: normalizeRefs(next) });
+      },
+    }),
+    {
+      name: CART_STORAGE_KEY,
+      storage: createJSONStorage(() => localStorage),
+      skipHydration: true,
+      partialize: (state) => ({ refs: state.refs }),
+      merge: (persisted, current) => {
+        const raw =
+          typeof persisted === "object" && persisted !== null && "refs" in persisted
+            ? (persisted as { refs: unknown }).refs
+            : [];
+        return {
+          ...current,
+          refs: normalizeRefs(raw),
+        };
+      },
+    },
+  ),
+);
+
+export function useCartRefs() {
+  return useCartStore((s) => s.refs);
 }
 
-function withTotals(items: SerializedCart["items"], id: string): SerializedCart {
-  const nextItems = items.map((item) => ({
-    ...item,
-    lineTotal: toMoney(fromMoney(item.product.price) * item.quantity),
-  }));
-  return {
-    id,
-    items: nextItems,
-    total: toMoney(
-      nextItems.reduce((sum, item) => sum + fromMoney(item.lineTotal), 0),
-    ),
-    itemsCount: nextItems.reduce((sum, item) => sum + item.quantity, 0),
-  };
+export function useCartHydrated() {
+  return useCartStore((s) => s.hydrated);
 }
 
-export type CartStoreApi = StoreApi<CartStoreState>;
-
-export function createCartStore(initialCart?: SerializedCart | null): CartStoreApi {
-  return createStore<CartStoreState>()((set, get) => ({
-    cart: initialCart ?? emptyCart(),
-    pending: false,
-    error: null,
-
-    setCart(cart) {
-      set({ cart, error: null });
-    },
-
-    async add(productId, quantity = 1) {
-      const snapshot = get().cart;
-      set({ pending: true, error: null });
-
-      const result = await addToCartAction(productId, quantity);
-      if (!result.ok) {
-        set({ cart: snapshot, pending: false, error: result.message });
-        return result.message;
-      }
-
-      set({ cart: result.cart, pending: false, error: null });
-      return null;
-    },
-
-    async setQuantity(itemId, quantity) {
-      const snapshot = get().cart;
-      const optimisticItems = snapshot.items
-        .map((item) => (item.id === itemId ? { ...item, quantity } : item))
-        .filter((item) => item.quantity > 0);
-
-      set({
-        cart: withTotals(optimisticItems, snapshot.id),
-        pending: true,
-        error: null,
-      });
-
-      const result = await updateCartItemAction(itemId, quantity);
-      if (!result.ok) {
-        set({ cart: snapshot, pending: false, error: result.message });
-        return result.message;
-      }
-
-      set({ cart: result.cart, pending: false, error: null });
-      return null;
-    },
-
-    async remove(itemId) {
-      const snapshot = get().cart;
-      const optimisticItems = snapshot.items.filter((item) => item.id !== itemId);
-
-      set({
-        cart: withTotals(optimisticItems, snapshot.id),
-        pending: true,
-        error: null,
-      });
-
-      const result = await removeCartItemAction(itemId);
-      if (!result.ok) {
-        set({ cart: snapshot, pending: false, error: result.message });
-        return result.message;
-      }
-
-      set({ cart: result.cart, pending: false, error: null });
-      return null;
-    },
-
-    async clear() {
-      const snapshot = get().cart;
-      set({
-        cart: withTotals([], snapshot.id),
-        pending: true,
-        error: null,
-      });
-
-      const result = await clearCartAction();
-      if (!result.ok) {
-        set({ cart: snapshot, pending: false, error: result.message });
-        return result.message;
-      }
-
-      set({ cart: result.cart, pending: false, error: null });
-      return null;
-    },
-  }));
+export function useCartItemsCount() {
+  return useCartStore((s) => s.refs.reduce((sum, ref) => sum + ref.quantity, 0));
 }

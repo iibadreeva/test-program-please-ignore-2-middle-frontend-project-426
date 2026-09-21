@@ -37,7 +37,7 @@ export default async function ProductPage({ params }: Props) {
           {" · "}
           {product.brand.name}
         </p>
-        <h1 className="mt-2 font-display text-3xl font-semibold" data-testid="product-title">
+        <h1 className="mt-2 font-display text-3xl font-semibold" data-testid="product-name">
           {product.title}
         </h1>
         <div className="mt-4 flex items-baseline gap-3">
@@ -66,7 +66,7 @@ export default async function ProductPage({ params }: Props) {
           </dl>
         ) : null}
 
-        <AddToCartButton productId={product.id} disabled={product.stock <= 0} />
+        <AddToCartButton productId={product.id} available={product.available} />
       </div>
     </article>
   );

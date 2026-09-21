@@ -96,21 +96,6 @@ model PromoBlock {
   product: ProductSummary;
 }
 
-model CartItem {
-  id: string;
-  productId: string;
-  quantity: int32;
-  product: ProductSummary;
-  lineTotal: Money;
-}
-
-model Cart {
-  id: string;
-  items: CartItem[];
-  total: Money;
-  itemsCount: int32;
-}
-
 model PickupPoint {
   id: string;
   name: string;
@@ -165,17 +150,13 @@ model LoginBody {
   password: string;
 }
 
-model AddCartItemBody {
+model OrderLineInput {
   @minLength(1)
   productId: string;
-  /** Количество единиц товара */
-  @minValue(1)
-  quantity?: int32;
-}
 
-model UpdateCartItemBody {
-  /** Количество единиц товара */
+  /** Количество единиц товара (лимит совпадает с MAX_CART_LINE_QTY на клиенте) */
   @minValue(1)
+  @maxValue(99)
   quantity: int32;
 }
 
@@ -186,6 +167,11 @@ model CreateOrderBody {
   recipientName: string;
   phone: string;
   comment?: string;
+
+  /** Состав заказа с клиента (корзина живёт в localStorage); max = MAX_CART_IDS */
+  @minItems(1)
+  @maxItems(100)
+  items: OrderLineInput[];
 }
 
 // --- Auth ---
@@ -280,44 +266,6 @@ interface Home {
   @get
   @route("/promos")
   listPromos(): PromoBlock[];
-}
-
-// --- Cart ---
-
-@route("/cart")
-@tag("Cart")
-interface CartApi {
-  @get
-  getCart(): Cart;
-
-  @post
-  @route("/items")
-  addItem(@body body: AddCartItemBody): {
-    @statusCode statusCode: 201;
-    @body body: Cart;
-  } | {
-    @statusCode statusCode: 400;
-    @body body: ErrorResponse;
-  };
-
-  @patch
-  @route("/items/{id}")
-  updateItem(@path id: string, @body body: UpdateCartItemBody): Cart | {
-    @statusCode statusCode: 404;
-    @body body: ErrorResponse;
-  };
-
-  @delete
-  @route("/items/{id}")
-  removeItem(@path id: string): Cart | {
-    @statusCode statusCode: 404;
-    @body body: ErrorResponse;
-  };
-
-  @delete
-  clearCart(): {
-    @statusCode statusCode: 204;
-  };
 }
 
 // --- Orders ---

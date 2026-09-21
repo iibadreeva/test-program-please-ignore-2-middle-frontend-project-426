@@ -1,6 +1,5 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { ZodError } from "zod";
 import { requireUser } from "@/server/auth/session";
@@ -8,6 +7,7 @@ import { createOrder, createOrderSchema, OrderError } from "@/server/services/or
 
 export type CheckoutFormState = {
   ok: boolean;
+  orderId?: string;
   message?: string;
   fieldErrors?: Record<string, string[] | undefined>;
 };
@@ -27,6 +27,15 @@ function fail(error: unknown): CheckoutFormState {
   return { ok: false, message: "Не удалось оформить заказ" };
 }
 
+function parseItems(raw: FormDataEntryValue | null): unknown {
+  if (typeof raw !== "string" || raw.length === 0) return [];
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
 export async function checkoutAction(
   _prev: CheckoutFormState,
   formData: FormData,
@@ -42,6 +51,7 @@ export async function checkoutAction(
       recipientName: String(formData.get("recipientName") ?? ""),
       phone: String(formData.get("phone") ?? ""),
       comment: String(formData.get("comment") ?? "") || undefined,
+      items: parseItems(formData.get("items")),
     });
 
     if (!parsed.success) {
@@ -55,19 +65,9 @@ export async function checkoutAction(
     revalidatePath("/account/orders");
     revalidatePath("/", "layout");
 
-    redirect(`/account/orders/${order.id}?placed=1`);
+    // Клиент сам очистит корзину и перейдёт на заказ — не ждём redirect до очистки localStorage.
+    return { ok: true, orderId: order.id };
   } catch (error) {
-    if (isRedirectError(error)) throw error;
     return fail(error);
   }
-}
-
-function isRedirectError(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "digest" in error &&
-    typeof (error as { digest?: string }).digest === "string" &&
-    (error as { digest: string }).digest.startsWith("NEXT_REDIRECT")
-  );
 }

@@ -24,7 +24,7 @@ test.describe("главная", () => {
 
     await expect(page).toHaveURL(/\/products\//);
     await expect(page.getByTestId("product-page")).toBeVisible();
-    await expect(page.getByTestId("product-title")).toBeVisible();
+    await expect(page.getByTestId("product-name")).toBeVisible();
   });
 
   test("из главной открывается каталог по ссылке в шапке", async ({ page }) => {

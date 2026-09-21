@@ -6,7 +6,6 @@ tags:
   - name: Auth
   - name: Catalog
   - name: Home
-  - name: Cart
   - name: Orders
 paths:
   /auth/login:
@@ -108,105 +107,6 @@ paths:
                   $ref: '#/components/schemas/Brand'
       tags:
         - Catalog
-  /cart:
-    get:
-      operationId: CartApi_getCart
-      parameters: []
-      responses:
-        '200':
-          description: The request has succeeded.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Cart'
-      tags:
-        - Cart
-    delete:
-      operationId: CartApi_clearCart
-      parameters: []
-      responses:
-        '204':
-          description: 'There is no content to send for this request, but the headers may be useful. '
-      tags:
-        - Cart
-  /cart/items:
-    post:
-      operationId: CartApi_addItem
-      parameters: []
-      responses:
-        '201':
-          description: The request has succeeded and a new resource has been created as a result.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Cart'
-        '400':
-          description: The server could not understand the request due to invalid syntax.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-      tags:
-        - Cart
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AddCartItemBody'
-  /cart/items/{id}:
-    patch:
-      operationId: CartApi_updateItem
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: The request has succeeded.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Cart'
-        '404':
-          description: The server cannot find the requested resource.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-      tags:
-        - Cart
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateCartItemBody'
-    delete:
-      operationId: CartApi_removeItem
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: The request has succeeded.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Cart'
-        '404':
-          description: The server cannot find the requested resource.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-      tags:
-        - Cart
   /categories:
     get:
       operationId: Catalog_listCategories
@@ -437,19 +337,6 @@ paths:
         - Home
 components:
   schemas:
-    AddCartItemBody:
-      type: object
-      required:
-        - productId
-      properties:
-        productId:
-          type: string
-          minLength: 1
-        quantity:
-          type: integer
-          format: int32
-          minimum: 1
-          description: Количество единиц товара
     Brand:
       type: object
       required:
@@ -463,45 +350,6 @@ components:
           type: string
         name:
           type: string
-    Cart:
-      type: object
-      required:
-        - id
-        - items
-        - total
-        - itemsCount
-      properties:
-        id:
-          type: string
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/CartItem'
-        total:
-          $ref: '#/components/schemas/Money'
-        itemsCount:
-          type: integer
-          format: int32
-    CartItem:
-      type: object
-      required:
-        - id
-        - productId
-        - quantity
-        - product
-        - lineTotal
-      properties:
-        id:
-          type: string
-        productId:
-          type: string
-        quantity:
-          type: integer
-          format: int32
-        product:
-          $ref: '#/components/schemas/ProductSummary'
-        lineTotal:
-          $ref: '#/components/schemas/Money'
     Category:
       type: object
       required:
@@ -521,6 +369,7 @@ components:
         - deliveryType
         - recipientName
         - phone
+        - items
       properties:
         deliveryType:
           type: string
@@ -537,6 +386,13 @@ components:
           type: string
         comment:
           type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderLineInput'
+          minItems: 1
+          maxItems: 100
+          description: Состав заказа с клиента (корзина живёт в localStorage); max = MAX_CART_IDS
     ErrorBody:
       type: object
       required:
@@ -650,6 +506,21 @@ components:
           format: int32
         lineTotal:
           $ref: '#/components/schemas/Money'
+    OrderLineInput:
+      type: object
+      required:
+        - productId
+        - quantity
+      properties:
+        productId:
+          type: string
+          minLength: 1
+        quantity:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 99
+          description: Количество единиц товара (лимит совпадает с MAX_CART_LINE_QTY на клиенте)
     PaginationMeta:
       type: object
       required:
@@ -789,16 +660,6 @@ components:
           type: string
           minLength: 2
           maxLength: 80
-    UpdateCartItemBody:
-      type: object
-      required:
-        - quantity
-      properties:
-        quantity:
-          type: integer
-          format: int32
-          minimum: 1
-          description: Количество единиц товара
     UserPublic:
       type: object
       required:

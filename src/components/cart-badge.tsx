@@ -1,11 +1,12 @@
 "use client";
 
-import { useCartItemsCount } from "@/features/cart/store-provider";
+import { useCartHydrated, useCartItemsCount } from "@/features/cart/store";
 
 export function CartBadge() {
+  const hydrated = useCartHydrated();
   const itemsCount = useCartItemsCount();
 
-  if (itemsCount <= 0) return null;
+  if (!hydrated || itemsCount <= 0) return null;
 
   return (
     <span

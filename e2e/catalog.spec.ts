@@ -74,7 +74,7 @@ test.describe("каталог", () => {
     await name.click();
 
     await expect(page).toHaveURL(/\/products\//);
-    await expect(page.getByTestId("product-title")).toHaveText(title);
+    await expect(page.getByTestId("product-name")).toHaveText(title);
   });
 
   test("фильтр по категории сужает список", async ({ page }) => {
