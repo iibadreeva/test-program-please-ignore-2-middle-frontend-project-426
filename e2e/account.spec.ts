@@ -1,16 +1,29 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type APIRequestContext, type Page } from "@playwright/test";
 
 function uniqueEmail(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`;
 }
 
+type ProductSummary = { id: string; title: string; price: string; stock: number };
+
+/** Товар с запасом остатка — параллельные e2e не должны схлопнуть один sku. */
+async function fetchAvailableProduct(request: APIRequestContext): Promise<ProductSummary> {
+  const productRes = await request.get("/api/products?available=true&perPage=24&sort=price_asc");
+  const items = ((await productRes.json()) as { items: ProductSummary[] }).items;
+  expect(items.length).toBeGreaterThan(0);
+  return items.find((item) => item.stock >= 5) ?? items[0]!;
+}
+
 async function registerViaUi(page: Page, email: string, password: string, name = "Тест Юзер") {
   await page.goto("/register");
+  await expect(page.getByTestId("register-page")).toBeVisible();
   await page.getByTestId("auth-name").fill(name);
   await page.getByTestId("auth-email").fill(email);
   await page.getByTestId("auth-password").fill(password);
   await page.getByTestId("auth-submit").click();
-  await expect(page.getByTestId("nav-signout")).toBeVisible({ timeout: 15_000 });
+  // После редиректа на /account layout должен показать выход (cold compile может занять дольше 15с).
+  await expect(page.getByTestId("nav-signout")).toBeVisible({ timeout: 30_000 });
+  await expect(page).toHaveURL(/\/account/);
 }
 
 async function placeOrder(
@@ -32,9 +45,11 @@ async function placeOrder(
 }
 
 test.describe("личный кабинет", () => {
+  // Две регистрации + API-заказы: запас на cold compile / CI.
+  test.describe.configure({ timeout: 60_000 });
+
   test("видны только свои заказы; чужие не показываются", async ({ page, request, browser }) => {
-    const productRes = await request.get("/api/products?available=true&perPage=1");
-    const product = ((await productRes.json()) as { items: { id: string }[] }).items[0]!;
+    const product = await fetchAvailableProduct(request);
 
     const emailA = uniqueEmail("owner");
     const emailB = uniqueEmail("other");
@@ -65,12 +80,7 @@ test.describe("личный кабинет", () => {
   });
 
   test("открытый заказ показывает состав, цены снимка и итог", async ({ page, request }) => {
-    const productRes = await request.get("/api/products?available=true&perPage=1");
-    const product = (
-      (await productRes.json()) as {
-        items: { id: string; title: string; price: string }[];
-      }
-    ).items[0]!;
+    const product = await fetchAvailableProduct(request);
 
     const email = uniqueEmail("details");
     await registerViaUi(page, email, "password1");
@@ -99,8 +109,7 @@ test.describe("личный кабинет", () => {
   });
 
   test("deep link /account/orders/:id открывает заказ в кабинете", async ({ page, request }) => {
-    const productRes = await request.get("/api/products?available=true&perPage=1");
-    const product = ((await productRes.json()) as { items: { id: string }[] }).items[0]!;
+    const product = await fetchAvailableProduct(request);
 
     const email = uniqueEmail("deeplink");
     await registerViaUi(page, email, "password1");

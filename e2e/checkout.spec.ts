@@ -8,14 +8,23 @@ function uniqueEmail(prefix: string) {
 
 async function registerViaUi(page: Page, email: string, password: string, name = "Тест Юзер") {
   await page.goto("/register");
+  await expect(page.getByTestId("register-page")).toBeVisible();
   await page.getByTestId("auth-name").fill(name);
   await page.getByTestId("auth-email").fill(email);
   await page.getByTestId("auth-password").fill(password);
   await page.getByTestId("auth-submit").click();
-  await expect(page.getByTestId("nav-signout")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByTestId("nav-signout")).toBeVisible({ timeout: 30_000 });
+  await expect(page).toHaveURL(/\/account/);
 }
 
-async function seedCart(page: Page, refs: { productId: string; quantity: number }[]) {
+/**
+ * Пишем корзину в localStorage перед навигацией на /checkout.
+ * Нельзя сидить до /register|/account: там syncClamped вычистит недоступные refs.
+ */
+async function seedCartBeforeNextNavigation(
+  page: Page,
+  refs: { productId: string; quantity: number }[],
+) {
   await page.addInitScript(
     ({ key, refs: cartRefs }) => {
       localStorage.setItem(key, JSON.stringify({ state: { refs: cartRefs }, version: 0 }));
@@ -33,11 +42,13 @@ type ProductSummary = {
 };
 
 async function fetchAvailableProduct(request: APIRequestContext): Promise<ProductSummary> {
-  const response = await request.get("/api/products?available=true&perPage=1");
+  // Берём пачку и выбираем с запасом остатка — параллельные e2e не схлопывают один sku в 0.
+  const response = await request.get("/api/products?available=true&perPage=24&sort=price_asc");
   expect(response.ok()).toBeTruthy();
   const body = (await response.json()) as { items: ProductSummary[] };
   expect(body.items.length).toBeGreaterThan(0);
-  return body.items[0]!;
+  const withStock = body.items.find((item) => item.stock >= 5);
+  return withStock ?? body.items[0]!;
 }
 
 async function fetchUnavailableProduct(request: APIRequestContext): Promise<ProductSummary | null> {
@@ -68,8 +79,8 @@ test.describe("оформление заказа", () => {
   test("при доставке адрес обязателен, при самовывозе поле скрыто", async ({ page, request }) => {
     const product = await fetchAvailableProduct(request);
     const email = uniqueEmail("method");
-    await seedCart(page, [{ productId: product.id, quantity: 1 }]);
     await registerViaUi(page, email, "password1");
+    await seedCartBeforeNextNavigation(page, [{ productId: product.id, quantity: 1 }]);
     await page.goto("/checkout");
 
     await expect(page.getByTestId("checkout-form")).toBeVisible();
@@ -95,8 +106,8 @@ test.describe("оформление заказа", () => {
   }) => {
     const product = await fetchAvailableProduct(request);
     const email = uniqueEmail("checkout-ok");
-    await seedCart(page, [{ productId: product.id, quantity: 1 }]);
     await registerViaUi(page, email, "password1", "Получатель");
+    await seedCartBeforeNextNavigation(page, [{ productId: product.id, quantity: 1 }]);
 
     await page.goto("/checkout");
     await expect(page.getByTestId("checkout-form")).toBeVisible();
@@ -117,11 +128,11 @@ test.describe("оформление заказа", () => {
     test.skip(!unavailable, "в сиде нет недоступных товаров");
 
     const email = uniqueEmail("unavailable");
-    await seedCart(page, [
+    await registerViaUi(page, email, "password1");
+    await seedCartBeforeNextNavigation(page, [
       { productId: unavailable!.id, quantity: 1 },
       { productId: "missing-product-id", quantity: 1 },
     ]);
-    await registerViaUi(page, email, "password1");
 
     await page.goto("/checkout");
     await expect(page.getByTestId("checkout-form")).toBeVisible();

@@ -21,6 +21,8 @@ function useCartCatalogProducts(hydrated: boolean, idsKey: string) {
   const [products, setProducts] = useState<ProductSummary[]>([]);
   const [status, setStatus] = useState<CartCatalogStatus>("idle");
   const [error, setError] = useState<string | null>(null);
+  /** idsKey, для которого status/products уже согласованы (иначе clamp видит stale ready). */
+  const [resolvedKey, setResolvedKey] = useState<string | null>(null);
   const requestId = useRef(0);
 
   useEffect(() => {
@@ -30,6 +32,7 @@ function useCartCatalogProducts(hydrated: boolean, idsKey: string) {
     if (ids.length === 0) {
       setProducts([]);
       setStatus("ready");
+      setResolvedKey("");
       setError(null);
       return;
     }
@@ -43,28 +46,35 @@ function useCartCatalogProducts(hydrated: boolean, idsKey: string) {
         if (currentRequest !== requestId.current) return;
         setProducts(next);
         setStatus("ready");
+        setResolvedKey(idsKey);
       })
       .catch((err: unknown) => {
         if (currentRequest !== requestId.current) return;
         console.error(err);
         setProducts([]);
         setStatus("error");
+        setResolvedKey(idsKey);
         setError("Не удалось загрузить корзину. Попробуйте обновить страницу.");
       });
   }, [hydrated, idsKey]);
 
-  return { products, status, error };
+  return { products, status, error, resolvedKey };
 }
 
 function useSyncClampedRefs(
   status: CartCatalogStatus,
   refs: ReturnType<typeof useCartRefs>,
   products: ProductSummary[],
+  idsKey: string,
+  resolvedKey: string | null,
 ) {
   const replaceRefs = useCartStore((s) => s.replaceRefs);
 
   useEffect(() => {
     if (status !== "ready") return;
+    // Пустая корзина → add: один кадр status ещё ready при products=[] (resolvedKey "").
+    // Без этой проверки clamp мгновенно обнуляет только что добавленные refs.
+    if (resolvedKey !== idsKey) return;
     const next = clampedRefs(refs, products);
     const changed =
       next.length !== refs.length ||
@@ -73,7 +83,7 @@ function useSyncClampedRefs(
           ref.quantity !== refs[index]?.quantity || ref.productId !== refs[index]?.productId,
       );
     if (changed) replaceRefs(next);
-  }, [status, products, refs, replaceRefs]);
+  }, [status, products, refs, replaceRefs, idsKey, resolvedKey]);
 }
 
 /**
@@ -86,8 +96,14 @@ export function useCartMerged(options?: { syncClamped?: boolean }): UseCartMerge
   const hydrated = useCartHydrated();
   const refs = useCartRefs();
   const idsKey = refs.map((ref) => ref.productId).join(",");
-  const { products, status, error } = useCartCatalogProducts(hydrated, idsKey);
-  useSyncClampedRefs(syncClamped ? status : "idle", refs, products);
+  const { products, status, error, resolvedKey } = useCartCatalogProducts(hydrated, idsKey);
+  useSyncClampedRefs(
+    syncClamped ? status : "idle",
+    refs,
+    products,
+    idsKey,
+    syncClamped ? resolvedKey : idsKey,
+  );
 
   const merged = useMemo(() => mergeWithProducts(refs, products), [refs, products]);
 

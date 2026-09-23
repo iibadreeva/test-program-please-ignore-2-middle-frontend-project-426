@@ -1,17 +1,30 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+
+/** Карточка с товаром в наличии (data-available на availability, не на article). */
+function availableCatalogItem(page: Page) {
+  return page.getByTestId("catalog-item").filter({
+    has: page.locator('[data-testid="catalog-item-availability"][data-available="true"]'),
+  });
+}
+
+function unavailableCatalogItem(page: Page) {
+  return page.getByTestId("catalog-item").filter({
+    has: page.locator('[data-testid="catalog-item-availability"][data-available="false"]'),
+  });
+}
 
 test.describe("корзина", () => {
   test.beforeEach(async ({ page }) => {
-    // Очищаем до любых скриптов страницы, чтобы Zustand persist поднял пустую корзину.
-    await page.addInitScript(() => {
-      localStorage.clear();
-    });
+    // Очищаем один раз через evaluate — не через addInitScript:
+    // иначе clear сработает на каждом goto/reload и сотрёт только что добавленную корзину.
     await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
   });
 
   test("карточка товара открывается и показывает название, цену и описание", async ({ page }) => {
     await page.goto("/catalog");
-    const name = page.getByTestId("catalog-item-name").first();
+    const name = availableCatalogItem(page).first().getByTestId("catalog-item-name");
     const title = await name.innerText();
     await name.click();
 
@@ -23,7 +36,7 @@ test.describe("корзина", () => {
 
   test("товар добавляется в корзину и появляется в ней", async ({ page }) => {
     await page.goto("/catalog");
-    await page.getByTestId("catalog-item-name").first().click();
+    await availableCatalogItem(page).first().getByTestId("catalog-item-name").click();
     const productName = await page.getByTestId("product-name").innerText();
 
     await page.getByTestId("product-add-to-cart").click();
@@ -37,7 +50,7 @@ test.describe("корзина", () => {
 
   test("количество позиции меняется, итоговая сумма пересчитывается", async ({ page }) => {
     await page.goto("/catalog");
-    await page.getByTestId("catalog-item-name").first().click();
+    await availableCatalogItem(page).first().getByTestId("catalog-item-name").click();
     await page.getByTestId("product-add-to-cart").click();
     await page.getByTestId("nav-cart").click();
 
@@ -52,7 +65,7 @@ test.describe("корзина", () => {
 
   test("позиция удаляется из корзины", async ({ page }) => {
     await page.goto("/catalog");
-    await page.getByTestId("catalog-item-name").first().click();
+    await availableCatalogItem(page).first().getByTestId("catalog-item-name").click();
     await page.getByTestId("product-add-to-cart").click();
     await page.getByTestId("nav-cart").click();
 
@@ -63,7 +76,7 @@ test.describe("корзина", () => {
 
   test("состав корзины сохраняется после перезагрузки страницы", async ({ page }) => {
     await page.goto("/catalog");
-    await page.getByTestId("catalog-item-name").first().click();
+    await availableCatalogItem(page).first().getByTestId("catalog-item-name").click();
     const productName = await page.getByTestId("product-name").innerText();
     await page.getByTestId("product-add-to-cart").click();
     await page.getByTestId("nav-cart").click();
@@ -76,7 +89,8 @@ test.describe("корзина", () => {
 
   test("недоступный товар в корзину не добавляется", async ({ page }) => {
     await page.goto("/catalog?search=4090");
-    const unavailable = page.locator('[data-testid="catalog-item"][data-available="false"]').first();
+    await expect(page.getByTestId("catalog-filters")).toBeVisible();
+    const unavailable = unavailableCatalogItem(page).first();
     await expect(unavailable).toBeVisible();
     await unavailable.getByTestId("catalog-item-name").click();
 
