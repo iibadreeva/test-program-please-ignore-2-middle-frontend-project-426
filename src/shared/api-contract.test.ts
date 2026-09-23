@@ -10,7 +10,7 @@ import {
 describe("createOrderBodySchema", () => {
   it("requires at least one item", () => {
     const parsed = createOrderBodySchema.safeParse({
-      deliveryType: "DELIVERY",
+      deliveryType: "delivery",
       recipientName: "Иван",
       phone: "+79990001122",
       items: [],
@@ -20,7 +20,7 @@ describe("createOrderBodySchema", () => {
 
   it("accepts order body with items", () => {
     const parsed = createOrderBodySchema.safeParse({
-      deliveryType: "DELIVERY",
+      deliveryType: "delivery",
       recipientName: "Иван",
       phone: "+79990001122",
       items: [{ productId: "prod-1", quantity: 2 }],
@@ -35,7 +35,7 @@ describe("createOrderBodySchema", () => {
       quantity: 1,
     }));
     const parsed = createOrderBodySchema.safeParse({
-      deliveryType: "DELIVERY",
+      deliveryType: "delivery",
       recipientName: "Иван",
       phone: "+79990001122",
       items,
@@ -46,7 +46,7 @@ describe("createOrderBodySchema", () => {
   it("rejects quantity above MAX_CART_LINE_QTY", async () => {
     const { MAX_CART_LINE_QTY } = await import("@/shared/constants");
     const parsed = createOrderBodySchema.safeParse({
-      deliveryType: "DELIVERY",
+      deliveryType: "delivery",
       recipientName: "Иван",
       phone: "+79990001122",
       items: [{ productId: "prod-1", quantity: MAX_CART_LINE_QTY + 1 }],

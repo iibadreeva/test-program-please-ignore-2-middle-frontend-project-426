@@ -1,10 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { loginNextFromRequest } from "@/shared/auth-next";
 import { SESSION_COOKIE } from "@/shared/constants";
 
 const PROTECTED_PREFIXES = ["/account", "/checkout"];
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, search } = request.nextUrl;
   const needsAuth = PROTECTED_PREFIXES.some(
     (path) => pathname === path || pathname.startsWith(`${path}/`),
   );
@@ -16,7 +17,8 @@ export async function middleware(request: NextRequest) {
   if (!token) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
-    loginUrl.searchParams.set("next", pathname);
+    loginUrl.search = "";
+    loginUrl.searchParams.set("next", loginNextFromRequest(pathname, search));
     return NextResponse.redirect(loginUrl);
   }
 

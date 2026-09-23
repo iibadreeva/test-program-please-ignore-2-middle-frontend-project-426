@@ -1,14 +1,17 @@
 import { DeliveryType, OrderStatus, Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/server/db";
-import { createOrderBodySchema } from "@/shared/api-contract";
+import { createOrderBodySchema, type OrderProblemItem } from "@/shared/api-contract";
 import { toMoney } from "@/shared/money";
 import type { Order as ContractOrder } from "@/shared/api-contract";
 import { MAX_CART_IDS, MAX_CART_LINE_QTY } from "@/shared/constants";
 
+/** Максимальная длина адреса доставки (символы после trim). */
+const MAX_ADDRESS_LENGTH = 500;
+
 export const createOrderSchema = createOrderBodySchema
   .extend({
-    address: z.string().trim().optional(),
+    address: z.string().trim().max(MAX_ADDRESS_LENGTH).optional(),
     recipientName: z.string().trim().min(2, "Укажите имя получателя").max(80),
     phone: z
       .string()
@@ -16,24 +19,14 @@ export const createOrderSchema = createOrderBodySchema
       .min(10, "Укажите телефон")
       .max(20)
       .regex(/^[+\d\s()-]+$/, "Некорректный телефон"),
-    comment: z.string().trim().max(500).optional(),
   })
   .superRefine((data, ctx) => {
-    if (data.deliveryType === "DELIVERY") {
+    if (data.deliveryType === "delivery") {
       if (!data.address || data.address.length < 5) {
         ctx.addIssue({
           code: "custom",
           path: ["address"],
           message: "Укажите адрес доставки",
-        });
-      }
-    }
-    if (data.deliveryType === "PICKUP") {
-      if (!data.pickupPointId) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["pickupPointId"],
-          message: "Выберите пункт самовывоза",
         });
       }
     }
@@ -43,6 +36,25 @@ export type CreateOrderInput = z.infer<typeof createOrderSchema>;
 
 export type OrderLineInput = { productId: string; quantity: number };
 
+/** Алиас контрактного типа — один источник правды для 409 details. */
+export type OrderProblem = OrderProblemItem;
+
+export type ProductForOrder = {
+  id: string;
+  title: string;
+  price: number;
+  imageUrl: string | null;
+  stock: number;
+};
+
+export type BuiltOrderLine = {
+  productId: string;
+  titleSnapshot: string;
+  priceSnapshot: number;
+  imageUrlSnapshot: string;
+  quantity: number;
+};
+
 export class OrderError extends Error {
   constructor(
     public code: "VALIDATION_ERROR" | "UNAUTHORIZED" | "NOT_FOUND" | "CONFLICT",
@@ -50,6 +62,17 @@ export class OrderError extends Error {
   ) {
     super(message);
     this.name = "OrderError";
+  }
+}
+
+/** Атомарный отказ: перечень всех проблемных позиций, заказ не создаётся. */
+export class OrderItemsUnavailableError extends OrderError {
+  constructor(
+    public problems: OrderProblem[],
+    message = "Некоторые товары недоступны",
+  ) {
+    super("CONFLICT", message);
+    this.name = "OrderItemsUnavailableError";
   }
 }
 
@@ -71,6 +94,83 @@ export function aggregateOrderItems(items: OrderLineInput[]): OrderLineInput[] {
   }));
 }
 
+/**
+ * Собрать все проблемные позиции: товар не найден или остатка не хватает.
+ * Частичного оформления нет — вызывающий отклоняет заказ целиком.
+ */
+export function collectOrderProblems(
+  items: OrderLineInput[],
+  products: ProductForOrder[],
+): OrderProblem[] {
+  const byId = new Map(products.map((product) => [product.id, product]));
+  const problems: OrderProblem[] = [];
+
+  for (const item of items) {
+    const product = byId.get(item.productId);
+    if (!product) {
+      problems.push({
+        productId: item.productId,
+        reason: "not_found",
+        requested: item.quantity,
+        available: 0,
+      });
+      continue;
+    }
+    if (product.stock < item.quantity) {
+      problems.push({
+        productId: product.id,
+        title: product.title,
+        reason: "unavailable",
+        requested: item.quantity,
+        available: product.stock,
+      });
+    }
+  }
+
+  return problems;
+}
+
+/** Построить снимок позиций и итог по текущим ценам каталога (без цен клиента). */
+export function buildOrderLines(
+  items: OrderLineInput[],
+  products: ProductForOrder[],
+): { lines: BuiltOrderLine[]; total: number } {
+  const byId = new Map(products.map((product) => [product.id, product]));
+  const lines: BuiltOrderLine[] = [];
+  let total = 0;
+
+  for (const item of items) {
+    const product = byId.get(item.productId);
+    if (!product) {
+      throw new OrderError("CONFLICT", `Товар недоступен: ${item.productId}`);
+    }
+    lines.push({
+      productId: product.id,
+      titleSnapshot: product.title,
+      priceSnapshot: product.price,
+      imageUrlSnapshot: product.imageUrl ?? "",
+      quantity: item.quantity,
+    });
+    total += product.price * item.quantity;
+  }
+
+  return { lines, total };
+}
+
+/** Проблема гонки остатка: available — фактический stock после неудачного decrement. */
+export function raceUnavailableProblem(
+  line: BuiltOrderLine,
+  available: number,
+): OrderProblem {
+  return {
+    productId: line.productId,
+    title: line.titleSnapshot,
+    reason: "unavailable",
+    requested: line.quantity,
+    available,
+  };
+}
+
 /** Аргументы Prisma для атомарного decrement остатка, который не уходит в минус. */
 export function stockDecrementArgs(productId: string, quantity: number) {
   return {
@@ -81,30 +181,34 @@ export function stockDecrementArgs(productId: string, quantity: number) {
 
 const orderInclude = {
   items: { orderBy: { id: "asc" as const } },
-  pickupPoint: true,
 } satisfies Prisma.OrderInclude;
 
 type OrderWithRelations = Prisma.OrderGetPayload<{ include: typeof orderInclude }>;
 
 export type SerializedOrder = ContractOrder;
 
+const DELIVERY_TO_PRISMA: Record<"delivery" | "pickup", DeliveryType> = {
+  delivery: DeliveryType.DELIVERY,
+  pickup: DeliveryType.PICKUP,
+};
+
+const DELIVERY_TO_CONTRACT: Record<DeliveryType, "delivery" | "pickup"> = {
+  DELIVERY: "delivery",
+  PICKUP: "pickup",
+};
+
+const STATUS_TO_CONTRACT: Record<OrderStatus, "paid"> = {
+  PAID: "paid",
+};
+
 export function serializeOrder(order: OrderWithRelations): SerializedOrder {
   return {
     id: order.id,
-    status: order.status,
-    deliveryType: order.deliveryType,
+    status: STATUS_TO_CONTRACT[order.status],
+    deliveryType: DELIVERY_TO_CONTRACT[order.deliveryType],
     address: order.address ?? undefined,
-    pickupPointId: order.pickupPointId ?? undefined,
-    pickupPoint: order.pickupPoint
-      ? {
-          id: order.pickupPoint.id,
-          name: order.pickupPoint.name,
-          address: order.pickupPoint.address,
-        }
-      : null,
     recipientName: order.recipientName,
     phone: order.phone,
-    comment: order.comment ?? undefined,
     total: toMoney(order.total),
     createdAt: order.createdAt.toISOString(),
     items: order.items.map((item) => ({
@@ -122,13 +226,6 @@ export function serializeOrder(order: OrderWithRelations): SerializedOrder {
 export async function createOrder(userId: string, input: CreateOrderInput): Promise<SerializedOrder> {
   const data = createOrderSchema.parse(input);
 
-  if (data.deliveryType === "PICKUP" && data.pickupPointId) {
-    const point = await prisma.pickupPoint.findUnique({ where: { id: data.pickupPointId } });
-    if (!point) {
-      throw new OrderError("VALIDATION_ERROR", "Пункт самовывоза не найден");
-    }
-  }
-
   const items = aggregateOrderItems(data.items);
   if (items.length === 0) {
     throw new OrderError("VALIDATION_ERROR", "Корзина пуста");
@@ -140,62 +237,39 @@ export async function createOrder(userId: string, input: CreateOrderInput): Prom
       const products = await tx.product.findMany({
         where: { id: { in: productIds } },
       });
-      const byId = new Map(products.map((product) => [product.id, product]));
 
-      const lines: {
-        productId: string;
-        titleSnapshot: string;
-        priceSnapshot: number;
-        imageUrlSnapshot: string;
-        quantity: number;
-      }[] = [];
-
-      let total = 0;
-
-      for (const item of items) {
-        const product = byId.get(item.productId);
-        if (!product) {
-          throw new OrderError("CONFLICT", `Товар недоступен: ${item.productId}`);
-        }
-        if (product.stock < item.quantity) {
-          throw new OrderError(
-            "CONFLICT",
-            `Недостаточно «${product.title}»: в наличии ${product.stock} шт.`,
-          );
-        }
-
-        lines.push({
-          productId: product.id,
-          titleSnapshot: product.title,
-          priceSnapshot: product.price,
-          imageUrlSnapshot: product.imageUrl ?? "",
-          quantity: item.quantity,
-        });
-        total += product.price * item.quantity;
+      const problems = collectOrderProblems(items, products);
+      if (problems.length > 0) {
+        throw new OrderItemsUnavailableError(problems);
       }
 
-      await Promise.all(
-        lines.map(async (line) => {
-          const updated = await tx.product.updateMany(stockDecrementArgs(line.productId, line.quantity));
-          if (updated.count !== 1) {
-            throw new OrderError(
-              "CONFLICT",
-              `Недостаточно «${line.titleSnapshot}»: товар уже разобрали.`,
-            );
-          }
-        }),
-      );
+      const { lines, total } = buildOrderLines(items, products);
+
+      // Последовательно: Prisma не рекомендует Promise.all в interactive transaction.
+      // При первой гонке сразу отказ — дальнейшие decrement не нужны (TX откатится).
+      for (const line of lines) {
+        const updated = await tx.product.updateMany(
+          stockDecrementArgs(line.productId, line.quantity),
+        );
+        if (updated.count !== 1) {
+          const current = await tx.product.findUnique({
+            where: { id: line.productId },
+            select: { stock: true },
+          });
+          throw new OrderItemsUnavailableError([
+            raceUnavailableProblem(line, current?.stock ?? 0),
+          ]);
+        }
+      }
 
       return tx.order.create({
         data: {
           userId,
-          status: OrderStatus.NEW,
-          deliveryType: data.deliveryType as DeliveryType,
-          address: data.deliveryType === "DELIVERY" ? data.address : null,
-          pickupPointId: data.deliveryType === "PICKUP" ? data.pickupPointId : null,
+          status: OrderStatus.PAID,
+          deliveryType: DELIVERY_TO_PRISMA[data.deliveryType],
+          address: data.deliveryType === "delivery" ? data.address : null,
           recipientName: data.recipientName,
           phone: data.phone,
-          comment: data.comment || null,
           total,
           items: {
             create: lines,
@@ -225,16 +299,4 @@ export async function getOrderById(userId: string, orderId: string): Promise<Ser
     include: orderInclude,
   });
   return order ? serializeOrder(order) : null;
-}
-
-const STATUS_LABELS: Record<OrderStatus, string> = {
-  NEW: "Новый",
-  PROCESSING: "В обработке",
-  SHIPPED: "Отправлен",
-  COMPLETED: "Завершён",
-  CANCELLED: "Отменён",
-};
-
-export function orderStatusLabel(status: string): string {
-  return STATUS_LABELS[status as OrderStatus] ?? status;
 }

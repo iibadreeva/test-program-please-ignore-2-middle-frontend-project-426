@@ -147,10 +147,6 @@ export async function listBrands() {
   return prisma.brand.findMany({ orderBy: { name: "asc" } });
 }
 
-export async function listPickupPoints() {
-  return prisma.pickupPoint.findMany({ orderBy: { name: "asc" } });
-}
-
 export async function listProducts(input: ListProductsInput = {}) {
   const where = buildProductWhere(input);
 

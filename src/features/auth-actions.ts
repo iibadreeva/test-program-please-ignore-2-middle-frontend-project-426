@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { ZodError } from "zod";
 import { AuthError } from "@/server/auth/session";
 import { loginUser, logoutUser, registerUser } from "@/server/services/auth";
+import { resolveLoginNext } from "@/shared/auth-next";
 
 export type AuthFormState = {
   ok: boolean;
@@ -56,8 +57,7 @@ export async function loginAction(
       password: String(formData.get("password") ?? ""),
     });
     revalidatePath("/", "layout");
-    const next = String(formData.get("next") ?? "/account");
-    redirect(next.startsWith("/") ? next : "/account");
+    redirect(resolveLoginNext(String(formData.get("next") ?? "")));
   } catch (error) {
     if (isRedirectError(error)) throw error;
     return fail(error);

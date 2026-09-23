@@ -1,13 +1,25 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { logoutAction } from "@/features/auth-actions";
+import { AccountOrders } from "@/features/orders/account-orders";
 import { requireUser } from "@/server/auth/session";
+import { listOrders } from "@/server/services/orders";
+import { accountOrderListPath, loginHref } from "@/shared/auth-next";
 
 export const dynamic = "force-dynamic";
 
-export default async function AccountPage() {
+type Props = {
+  searchParams: Promise<{ order?: string }>;
+};
+
+export default async function AccountPage({ searchParams }: Props) {
+  const { order: openOrderId } = await searchParams;
   const user = await requireUser().catch(() => null);
-  if (!user) redirect("/login?next=/account");
+  if (!user) {
+    redirect(loginHref(openOrderId ? accountOrderListPath(openOrderId) : "/account"));
+  }
+
+  const orders = await listOrders(user.id);
 
   return (
     <div data-testid="account-page" className="space-y-8">
@@ -21,16 +33,12 @@ export default async function AccountPage() {
         </p>
       </div>
 
+      <section className="space-y-4">
+        <h2 className="font-display text-xl font-medium">Мои заказы</h2>
+        <AccountOrders orders={orders} openOrderId={openOrderId} />
+      </section>
+
       <ul className="space-y-3">
-        <li>
-          <Link
-            href="/account/orders"
-            className="block border border-border bg-surface px-4 py-3 hover:border-accent"
-            data-testid="account-orders-link"
-          >
-            История заказов
-          </Link>
-        </li>
         <li>
           <Link
             href="/catalog"

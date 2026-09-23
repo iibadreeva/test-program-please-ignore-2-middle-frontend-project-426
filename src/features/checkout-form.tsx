@@ -1,66 +1,67 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { markCartClearedForOrder } from "@/features/cart/order-cart-clear";
-import { useCartMerged } from "@/features/cart/use-cart-merged";
+import {
+  clearCheckoutCartSnapshot,
+  markCheckoutCartPlaced,
+  saveCheckoutCartSnapshot,
+} from "@/features/cart/checkout-cart-snapshot";
+import { useCartMerged, type UseCartMergedResult } from "@/features/cart/use-cart-merged";
 import { useCartStore } from "@/features/cart/store";
 import { checkoutAction, type CheckoutFormState } from "@/features/checkout-actions";
 import { formatPrice } from "@/shared/format";
 import { fromMoney } from "@/shared/money";
-
-type PickupPoint = { id: string; name: string; address: string };
+import { checkoutSuccessPath } from "@/shared/auth-next";
+import type { OrderProblemItem } from "@/shared/api-contract";
 
 type Props = {
-  pickupPoints: PickupPoint[];
   defaultName?: string;
 };
 
 const initial: CheckoutFormState = { ok: false };
 
 /**
- * Очищает localStorage-корзину в момент submit (при ошибке откатываем snapshot),
- * чтобы вторая вкладка / двойной клик реже создавали дубль заказа.
+ * Очищает localStorage-корзину в момент submit, чтобы снизить дубли
+ * при двойном клике / второй вкладке. Снимок в pending (inflight):
+ * при ошибке — откат из памяти; при успехе — status placed (не ресторить);
+ * при закрытии вкладки до ответа — restore из inflight в CartHydrator.
  */
 async function checkoutFormAction(
   prev: CheckoutFormState,
   formData: FormData,
 ): Promise<CheckoutFormState> {
   const snapshot = useCartStore.getState().refs;
+  saveCheckoutCartSnapshot(snapshot);
   useCartStore.getState().clear();
 
   const result = await checkoutAction(prev, formData);
   if (!result.ok) {
     useCartStore.getState().replaceRefs(snapshot);
+    clearCheckoutCartSnapshot();
     return result;
   }
 
-  if (result.orderId) {
-    markCartClearedForOrder(result.orderId);
-  }
+  // Не clear: если вкладку закроют до /checkout/success, placed не даст вернуть корзину.
+  markCheckoutCartPlaced();
   return result;
 }
 
-export function CheckoutForm({ pickupPoints, defaultName = "" }: Props) {
-  const router = useRouter();
-  const [state, action, pending] = useActionState(checkoutFormAction, initial);
-  const [deliveryType, setDeliveryType] = useState<"DELIVERY" | "PICKUP">("DELIVERY");
-  const { hydrated, merged, error, pending: catalogPending } = useCartMerged();
+function formatProblem(problem: OrderProblemItem): string {
+  if (problem.reason === "not_found") {
+    return `Товар не найден (${problem.productId})`;
+  }
+  const title = problem.title ?? problem.productId;
+  return `«${title}»: запрошено ${problem.requested}, доступно ${problem.available}`;
+}
 
-  useEffect(() => {
-    if (!state.ok || !state.orderId) return;
-    router.replace(`/account/orders/${state.orderId}?placed=1`);
-  }, [state.ok, state.orderId, router]);
-
-  const placing = pending || Boolean(state.ok && state.orderId);
-
-  const orderItemsJson = JSON.stringify(
-    merged.lines.map((line) => ({
-      productId: line.productId,
-      quantity: line.quantity,
-    })),
-  );
+/** Состояния до формы: загрузка, ошибка каталога, пустая корзина, «оформляем». */
+function checkoutPreflight(
+  cart: Pick<UseCartMergedResult, "hydrated" | "refs" | "error" | "pending">,
+  placing: boolean,
+): ReactNode | null {
+  const { hydrated, refs, error, pending: catalogPending } = cart;
 
   if (!hydrated || (catalogPending && !placing)) {
     return (
@@ -72,14 +73,18 @@ export function CheckoutForm({ pickupPoints, defaultName = "" }: Props) {
 
   if (error && !placing) {
     return (
-      <p className="border border-border bg-surface p-6 text-danger" data-testid="checkout-error" role="alert">
+      <p
+        className="border border-border bg-surface p-6 text-danger"
+        data-testid="checkout-catalog-error"
+        role="alert"
+      >
         {error}
       </p>
     );
   }
 
   // Корзину чистим в начале submit — показываем «оформляем», а не мигание «пусто».
-  if (merged.lines.length === 0 && placing) {
+  if (refs.length === 0 && placing) {
     return (
       <p className="border border-border bg-surface p-6 text-muted" data-testid="checkout-placing">
         Оформляем заказ…
@@ -87,7 +92,7 @@ export function CheckoutForm({ pickupPoints, defaultName = "" }: Props) {
     );
   }
 
-  if (merged.lines.length === 0) {
+  if (refs.length === 0) {
     return (
       <div className="space-y-4">
         <p className="border border-border bg-surface p-6 text-muted" data-testid="checkout-empty">
@@ -100,6 +105,54 @@ export function CheckoutForm({ pickupPoints, defaultName = "" }: Props) {
     );
   }
 
+  return null;
+}
+
+function OrderErrorBlock({ state }: { state: CheckoutFormState }) {
+  const hasError = Boolean(state.message || state.problems?.length || state.fieldErrors);
+  if (!hasError) return null;
+
+  return (
+    <div className="space-y-2 text-sm text-danger" role="alert" data-testid="order-error">
+      {state.message ? <p>{state.message}</p> : null}
+      {state.problems && state.problems.length > 0 ? (
+        <ul className="list-disc space-y-1 pl-5">
+          {state.problems.map((problem) => (
+            <li key={`${problem.productId}-${problem.reason}`}>{formatProblem(problem)}</li>
+          ))}
+        </ul>
+      ) : null}
+      {!state.message && !state.problems?.length && state.fieldErrors ? (
+        <p>Проверьте поля формы</p>
+      ) : null}
+    </div>
+  );
+}
+
+export function CheckoutForm({ defaultName = "" }: Props) {
+  const router = useRouter();
+  const [state, action, pending] = useActionState(checkoutFormAction, initial);
+  const [deliveryType, setDeliveryType] = useState<"delivery" | "pickup">("delivery");
+  // Без syncClamped: недоступные позиции доживают до сервера и попадают в атомарный отказ.
+  const cart = useCartMerged({ syncClamped: false });
+
+  useEffect(() => {
+    if (!state.ok || !state.orderId) return;
+    router.replace(checkoutSuccessPath(state.orderId));
+  }, [state.ok, state.orderId, router]);
+
+  const placing = pending || Boolean(state.ok && state.orderId);
+  const preflight = checkoutPreflight(cart, placing);
+  if (preflight) return preflight;
+
+  const { refs, merged } = cart;
+  const orderItemsJson = JSON.stringify(
+    refs.map((ref) => ({
+      productId: ref.productId,
+      quantity: ref.quantity,
+    })),
+  );
+
   return (
     <form
       action={action}
@@ -110,73 +163,37 @@ export function CheckoutForm({ pickupPoints, defaultName = "" }: Props) {
       <input type="hidden" name="items" value={orderItemsJson} />
 
       <div className="space-y-6">
-        <fieldset className="space-y-3">
-          <legend className="font-display text-lg font-medium">Способ получения</legend>
-          <div className="flex flex-wrap gap-3">
-            <label className="inline-flex items-center gap-2 border border-border px-3 py-2 has-[:checked]:border-accent">
-              <input
-                type="radio"
-                name="deliveryType"
-                value="DELIVERY"
-                checked={deliveryType === "DELIVERY"}
-                onChange={() => setDeliveryType("DELIVERY")}
-                data-testid="checkout-delivery-type-delivery"
-              />
-              Доставка
-            </label>
-            <label className="inline-flex items-center gap-2 border border-border px-3 py-2 has-[:checked]:border-accent">
-              <input
-                type="radio"
-                name="deliveryType"
-                value="PICKUP"
-                checked={deliveryType === "PICKUP"}
-                onChange={() => setDeliveryType("PICKUP")}
-                data-testid="checkout-delivery-type-pickup"
-              />
-              Самовывоз
-            </label>
-          </div>
-        </fieldset>
+        <label className="block text-sm">
+          <span className="text-muted">Способ получения</span>
+          <select
+            name="deliveryType"
+            className="mt-1 w-full border border-border bg-bg px-3 py-2 text-text"
+            value={deliveryType}
+            onChange={(event) =>
+              setDeliveryType(event.target.value === "pickup" ? "pickup" : "delivery")
+            }
+            data-testid="checkout-method"
+          >
+            <option value="delivery">Доставка</option>
+            <option value="pickup">Самовывоз</option>
+          </select>
+        </label>
 
-        {deliveryType === "DELIVERY" ? (
+        {deliveryType === "delivery" ? (
           <label className="block text-sm">
             <span className="text-muted">Адрес доставки</span>
             <textarea
               name="address"
               rows={3}
               className="mt-1 w-full border border-border bg-bg px-3 py-2 text-text"
-              placeholder="Город, улица, дом, квартира"
+              placeholder="Улица, дом, квартира"
               data-testid="checkout-address"
             />
             {state.fieldErrors?.address?.[0] ? (
               <span className="mt-1 block text-xs text-danger">{state.fieldErrors.address[0]}</span>
             ) : null}
           </label>
-        ) : (
-          <label className="block text-sm">
-            <span className="text-muted">Пункт самовывоза</span>
-            <select
-              name="pickupPointId"
-              className="mt-1 w-full border border-border bg-bg px-3 py-2 text-text"
-              defaultValue=""
-              data-testid="checkout-pickup-point"
-            >
-              <option value="" disabled>
-                Выберите пункт
-              </option>
-              {pickupPoints.map((point) => (
-                <option key={point.id} value={point.id}>
-                  {point.name} — {point.address}
-                </option>
-              ))}
-            </select>
-            {state.fieldErrors?.pickupPointId?.[0] ? (
-              <span className="mt-1 block text-xs text-danger">
-                {state.fieldErrors.pickupPointId[0]}
-              </span>
-            ) : null}
-          </label>
-        )}
+        ) : null}
 
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block text-sm">
@@ -187,8 +204,13 @@ export function CheckoutForm({ pickupPoints, defaultName = "" }: Props) {
               defaultValue={defaultName}
               required
               className="mt-1 w-full border border-border bg-bg px-3 py-2 text-text"
-              data-testid="checkout-recipient-name"
+              data-testid="checkout-name"
             />
+            {state.fieldErrors?.recipientName?.[0] ? (
+              <span className="mt-1 block text-xs text-danger">
+                {state.fieldErrors.recipientName[0]}
+              </span>
+            ) : null}
           </label>
           <label className="block text-sm">
             <span className="text-muted">Телефон</span>
@@ -200,24 +222,13 @@ export function CheckoutForm({ pickupPoints, defaultName = "" }: Props) {
               className="mt-1 w-full border border-border bg-bg px-3 py-2 text-text"
               data-testid="checkout-phone"
             />
+            {state.fieldErrors?.phone?.[0] ? (
+              <span className="mt-1 block text-xs text-danger">{state.fieldErrors.phone[0]}</span>
+            ) : null}
           </label>
         </div>
 
-        <label className="block text-sm">
-          <span className="text-muted">Комментарий</span>
-          <textarea
-            name="comment"
-            rows={2}
-            className="mt-1 w-full border border-border bg-bg px-3 py-2 text-text"
-            data-testid="checkout-comment"
-          />
-        </label>
-
-        {state.message ? (
-          <p className="text-sm text-danger" role="alert" data-testid="checkout-form-error">
-            {state.message}
-          </p>
-        ) : null}
+        <OrderErrorBlock state={state} />
       </div>
 
       <aside className="h-fit border border-border bg-surface p-4" data-testid="checkout-summary">
@@ -233,14 +244,21 @@ export function CheckoutForm({ pickupPoints, defaultName = "" }: Props) {
               </span>
             </li>
           ))}
+          {merged.broken.map((ref) => (
+            <li key={ref.productId} className="flex justify-between gap-3 text-danger">
+              <span>
+                Недоступен ({ref.productId.slice(-8)}) × {ref.quantity}
+              </span>
+            </li>
+          ))}
         </ul>
         <p className="mt-4 flex justify-between border-t border-border pt-4 font-mono text-lg text-accent">
           <span>Итого</span>
-          <span data-testid="checkout-total">{formatPrice(merged.total)}</span>
+          <span data-testid="checkout-preview-total">{formatPrice(merged.total)}</span>
         </p>
         <button
           type="submit"
-          disabled={pending || state.ok || merged.lines.length === 0}
+          disabled={pending || state.ok || refs.length === 0}
           className="mt-4 w-full bg-accent px-5 py-2.5 font-medium text-bg hover:bg-accent-dim disabled:opacity-40"
           data-testid="checkout-submit"
         >

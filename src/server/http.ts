@@ -5,6 +5,7 @@ export type ApiErrorCode =
   | "UNAUTHORIZED"
   | "NOT_FOUND"
   | "CONFLICT"
+  | "ORDER_ITEMS_UNAVAILABLE"
   | "INTERNAL_ERROR";
 
 export function apiError(

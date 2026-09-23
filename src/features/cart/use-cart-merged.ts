@@ -79,13 +79,15 @@ function useSyncClampedRefs(
 /**
  * Загружает строки каталога для refs из localStorage с защитой от гонок,
  * синхронизацией клампа остатка в store и явными состояниями loading/error.
+ * На оформлении передайте syncClamped: false, чтобы недоступные позиции дожили до сервера.
  */
-export function useCartMerged(): UseCartMergedResult {
+export function useCartMerged(options?: { syncClamped?: boolean }): UseCartMergedResult {
+  const syncClamped = options?.syncClamped !== false;
   const hydrated = useCartHydrated();
   const refs = useCartRefs();
   const idsKey = refs.map((ref) => ref.productId).join(",");
   const { products, status, error } = useCartCatalogProducts(hydrated, idsKey);
-  useSyncClampedRefs(status, refs, products);
+  useSyncClampedRefs(syncClamped ? status : "idle", refs, products);
 
   const merged = useMemo(() => mergeWithProducts(refs, products), [refs, products]);
 

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { LoginForm } from "@/features/login-form";
 import { getCurrentUser } from "@/server/auth/session";
+import { resolveLoginNext } from "@/shared/auth-next";
 
 export const dynamic = "force-dynamic";
 
@@ -9,11 +10,11 @@ type Props = {
 };
 
 export default async function LoginPage({ searchParams }: Props) {
-  const user = await getCurrentUser();
-  if (user) redirect("/account");
-
   const sp = await searchParams;
-  const next = sp.next?.startsWith("/") ? sp.next : "/account";
+  const next = resolveLoginNext(sp.next);
+
+  const user = await getCurrentUser();
+  if (user) redirect(next);
 
   return (
     <div data-testid="login-page" className="mx-auto max-w-md">

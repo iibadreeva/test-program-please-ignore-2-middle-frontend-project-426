@@ -10,14 +10,15 @@ export namespace Schemas {
     quantity: number;
   };
   export type CreateOrderBody = {
-    deliveryType: "DELIVERY" | "PICKUP";
+    deliveryType: "delivery" | "pickup";
+    /**
+     * Обязателен при delivery; при pickup не передаётся
+     */
     address?: string;
-    pickupPointId?: string;
     recipientName: string;
     phone: string;
-    comment?: string;
     /**
-     * Состав заказа с клиента (корзина живёт в localStorage); max = MAX_CART_IDS
+     * Состав заказа с клиента (корзина живёт в localStorage); max = MAX_CART_IDS. Без цен.
      */
     items: Array<OrderLineInput>;
   };
@@ -28,7 +29,6 @@ export namespace Schemas {
    * Денежная сумма в целых рублях (десятичная строка без копеек, без ведущих нулей)
    */
   export type Money = string;
-  export type PickupPoint = { id: string; name: string; address: string };
   export type OrderItem = {
     id: string;
     productId?: string;
@@ -40,20 +40,30 @@ export namespace Schemas {
   };
   export type Order = {
     id: string;
-    status: "NEW" | "PROCESSING" | "SHIPPED" | "COMPLETED" | "CANCELLED";
-    deliveryType: "DELIVERY" | "PICKUP";
+    status: "paid";
+    deliveryType: "delivery" | "pickup";
     address?: string;
-    pickupPointId?: string;
-    /**
-     * Развёрнутый пункт самовывоза; null для доставки или если пункт удалён
-     */
-    pickupPoint: (PickupPoint & (Record<string, unknown> | null)) | null;
     recipientName: string;
     phone: string;
-    comment?: string;
     total: Money;
     createdAt: string;
     items: Array<OrderItem>;
+  };
+  /**
+   * Проблемная позиция при атомарном отказе оформления
+   */
+  export type OrderProblemItem = {
+    productId: string;
+    /**
+     * Название на момент отказа; отсутствует, если товар не найден
+     */
+    title?: string;
+    reason: "not_found" | "unavailable";
+    requested: number;
+    available: number;
+  };
+  export type OrderItemsUnavailableError = {
+    error: { code: "ORDER_ITEMS_UNAVAILABLE"; message: string; details: Array<OrderProblemItem> };
   };
   export type PaginationMeta = { page: number; perPage: number; total: number; totalPages: number };
   export type ProductSummary = {
@@ -154,7 +164,12 @@ export namespace Endpoints {
     parameters: {
       body: Schemas.CreateOrderBody;
     };
-    responses: { 201: Schemas.Order; 400: Schemas.ErrorResponse; 401: Schemas.ErrorResponse };
+    responses: {
+      201: Schemas.Order;
+      400: Schemas.ErrorResponse;
+      401: Schemas.ErrorResponse;
+      409: Schemas.OrderItemsUnavailableError;
+    };
   };
   export type get_Orders_list = {
     method: "GET";
@@ -173,14 +188,6 @@ export namespace Endpoints {
       path: { id: string };
     };
     responses: { 200: Schemas.Order; 401: Schemas.ErrorResponse; 404: Schemas.ErrorResponse };
-  };
-  export type get_Catalog_listPickupPoints = {
-    method: "GET";
-    path: "/pickup-points";
-    requestFormat: "json";
-    responseFormat: "json";
-    parameters: never;
-    responses: { 200: Array<Schemas.PickupPoint> };
   };
   export type get_Catalog_listProducts = {
     method: "GET";
@@ -238,7 +245,6 @@ export type EndpointByMethod = {
     "/categories": Endpoints.get_Catalog_listCategories;
     "/orders": Endpoints.get_Orders_list;
     "/orders/{id}": Endpoints.get_Orders_get;
-    "/pickup-points": Endpoints.get_Catalog_listPickupPoints;
     "/products": Endpoints.get_Catalog_listProducts;
     "/products/{slug}": Endpoints.get_Catalog_getProduct;
     "/promos": Endpoints.get_Home_listPromos;

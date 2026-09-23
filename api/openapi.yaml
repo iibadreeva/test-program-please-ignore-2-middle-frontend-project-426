@@ -145,6 +145,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: The request conflicts with the current state of the server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderItemsUnavailableError'
       tags:
         - Orders
       requestBody:
@@ -203,21 +209,6 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       tags:
         - Orders
-  /pickup-points:
-    get:
-      operationId: Catalog_listPickupPoints
-      parameters: []
-      responses:
-        '200':
-          description: The request has succeeded.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/PickupPoint'
-      tags:
-        - Catalog
   /products:
     get:
       operationId: Catalog_listProducts
@@ -374,17 +365,14 @@ components:
         deliveryType:
           type: string
           enum:
-            - DELIVERY
-            - PICKUP
+            - delivery
+            - pickup
         address:
           type: string
-        pickupPointId:
-          type: string
+          description: Обязателен при delivery; при pickup не передаётся
         recipientName:
           type: string
         phone:
-          type: string
-        comment:
           type: string
         items:
           type: array
@@ -392,7 +380,7 @@ components:
             $ref: '#/components/schemas/OrderLineInput'
           minItems: 1
           maxItems: 100
-          description: Состав заказа с клиента (корзина живёт в localStorage); max = MAX_CART_IDS
+          description: Состав заказа с клиента (корзина живёт в localStorage); max = MAX_CART_IDS. Без цен.
     ErrorBody:
       type: object
       required:
@@ -434,7 +422,6 @@ components:
         - id
         - status
         - deliveryType
-        - pickupPoint
         - recipientName
         - phone
         - total
@@ -446,31 +433,18 @@ components:
         status:
           type: string
           enum:
-            - NEW
-            - PROCESSING
-            - SHIPPED
-            - COMPLETED
-            - CANCELLED
+            - paid
+          description: Оформленный заказ сразу «Оплачен»; смены статусов нет
         deliveryType:
           type: string
           enum:
-            - DELIVERY
-            - PICKUP
+            - delivery
+            - pickup
         address:
           type: string
-        pickupPointId:
-          type: string
-        pickupPoint:
-          type: object
-          allOf:
-            - $ref: '#/components/schemas/PickupPoint'
-          nullable: true
-          description: Развёрнутый пункт самовывоза; null для доставки или если пункт удалён
         recipientName:
           type: string
         phone:
-          type: string
-        comment:
           type: string
         total:
           $ref: '#/components/schemas/Money'
@@ -506,6 +480,28 @@ components:
           format: int32
         lineTotal:
           $ref: '#/components/schemas/Money'
+    OrderItemsUnavailableError:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum:
+                - ORDER_ITEMS_UNAVAILABLE
+            message:
+              type: string
+            details:
+              type: array
+              items:
+                $ref: '#/components/schemas/OrderProblemItem'
+          required:
+            - code
+            - message
+            - details
     OrderLineInput:
       type: object
       required:
@@ -521,6 +517,31 @@ components:
           minimum: 1
           maximum: 99
           description: Количество единиц товара (лимит совпадает с MAX_CART_LINE_QTY на клиенте)
+    OrderProblemItem:
+      type: object
+      required:
+        - productId
+        - reason
+        - requested
+        - available
+      properties:
+        productId:
+          type: string
+        title:
+          type: string
+          description: Название на момент отказа; отсутствует, если товар не найден
+        reason:
+          type: string
+          enum:
+            - not_found
+            - unavailable
+        requested:
+          type: integer
+          format: int32
+        available:
+          type: integer
+          format: int32
+      description: Проблемная позиция при атомарном отказе оформления
     PaginationMeta:
       type: object
       required:
@@ -541,19 +562,6 @@ components:
         totalPages:
           type: integer
           format: int32
-    PickupPoint:
-      type: object
-      required:
-        - id
-        - name
-        - address
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-        address:
-          type: string
     ProductDetail:
       type: object
       required:

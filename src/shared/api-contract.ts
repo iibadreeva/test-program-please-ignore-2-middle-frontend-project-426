@@ -3,6 +3,7 @@ import {
   CreateOrderBody,
   LoginBody,
   Money,
+  OrderProblemItem,
   RegisterBody,
   type Brand,
   type Category,
@@ -23,6 +24,7 @@ export {
   CreateOrderBody as createOrderBodySchema,
   RegisterBody as registerBodySchema,
   LoginBody as loginBodySchema,
+  OrderProblemItem as orderProblemItemSchema,
 };
 
 export type {
@@ -33,6 +35,7 @@ export type {
   ErrorResponse,
   Order,
   OrderItem,
+  OrderProblemItem,
   ProductDetail,
   ProductListResponse,
   ProductSummary,

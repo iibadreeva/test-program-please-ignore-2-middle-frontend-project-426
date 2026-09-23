@@ -1,6 +1,12 @@
 import { apiError, apiOk } from "@/server/http";
 import { AuthError, getCurrentUser } from "@/server/auth/session";
-import { createOrder, createOrderSchema, listOrders, OrderError } from "@/server/services/orders";
+import {
+  createOrder,
+  createOrderSchema,
+  OrderError,
+  OrderItemsUnavailableError,
+  listOrders,
+} from "@/server/services/orders";
 import { ZodError } from "zod";
 
 export async function GET() {
@@ -41,9 +47,18 @@ export async function POST(request: Request) {
     if (error instanceof ZodError) {
       return apiError(400, "VALIDATION_ERROR", "Некорректные данные", error.flatten());
     }
+    if (error instanceof OrderItemsUnavailableError) {
+      return apiError(409, "ORDER_ITEMS_UNAVAILABLE", error.message, error.problems);
+    }
     if (error instanceof OrderError) {
       const status =
-        error.code === "NOT_FOUND" ? 404 : error.code === "UNAUTHORIZED" ? 401 : 400;
+        error.code === "NOT_FOUND"
+          ? 404
+          : error.code === "UNAUTHORIZED"
+            ? 401
+            : error.code === "CONFLICT"
+              ? 409
+              : 400;
       return apiError(status, error.code, error.message);
     }
     if (error instanceof AuthError) {

@@ -18,12 +18,10 @@ export const OrderLineInput = z.strictObject({
 
 export type CreateOrderBody = __TypedOpenapi.Schemas.CreateOrderBody;
 export const CreateOrderBody = z.strictObject({
-  deliveryType: z.enum(["DELIVERY", "PICKUP"]),
+  deliveryType: z.enum(["delivery", "pickup"]),
   address: z.string().optional(),
-  pickupPointId: z.string().optional(),
   recipientName: z.string(),
   phone: z.string(),
-  comment: z.string().optional(),
   items: z.array(OrderLineInput).min(1).max(100),
 });
 
@@ -39,9 +37,6 @@ export const LoginBody = z.strictObject({ email: z.email().min(1), password: z.s
 export type Money = __TypedOpenapi.Schemas.Money;
 export const Money = z.string().regex(new RegExp("^(0|[1-9][0-9]*)$"));
 
-export type PickupPoint = __TypedOpenapi.Schemas.PickupPoint;
-export const PickupPoint = z.strictObject({ id: z.string(), name: z.string(), address: z.string() });
-
 export type OrderItem = __TypedOpenapi.Schemas.OrderItem;
 export const OrderItem = z.strictObject({
   id: z.string(),
@@ -56,17 +51,32 @@ export const OrderItem = z.strictObject({
 export type Order = __TypedOpenapi.Schemas.Order;
 export const Order = z.strictObject({
   id: z.string(),
-  status: z.enum(["NEW", "PROCESSING", "SHIPPED", "COMPLETED", "CANCELLED"]),
-  deliveryType: z.enum(["DELIVERY", "PICKUP"]),
+  status: z.literal("paid"),
+  deliveryType: z.enum(["delivery", "pickup"]),
   address: z.string().optional(),
-  pickupPointId: z.string().optional(),
-  pickupPoint: PickupPoint.and(z.record(z.string(), z.unknown()).nullable()).nullable(),
   recipientName: z.string(),
   phone: z.string(),
-  comment: z.string().optional(),
   total: Money,
   createdAt: z.iso.datetime(),
   items: z.array(OrderItem),
+});
+
+export type OrderProblemItem = __TypedOpenapi.Schemas.OrderProblemItem;
+export const OrderProblemItem = z.strictObject({
+  productId: z.string(),
+  title: z.string().optional(),
+  reason: z.enum(["not_found", "unavailable"]),
+  requested: z.number().int(),
+  available: z.number().int(),
+});
+
+export type OrderItemsUnavailableError = __TypedOpenapi.Schemas.OrderItemsUnavailableError;
+export const OrderItemsUnavailableError = z.strictObject({
+  error: z.strictObject({
+    code: z.literal("ORDER_ITEMS_UNAVAILABLE"),
+    message: z.string(),
+    details: z.array(OrderProblemItem),
+  }),
 });
 
 export type PaginationMeta = __TypedOpenapi.Schemas.PaginationMeta;
@@ -187,7 +197,7 @@ export const post_Orders_create = {
   requestFormat: z.literal("json"),
   responseFormat: z.literal("json"),
   parameters: { body: CreateOrderBody },
-  responses: { 201: Order, 400: ErrorResponse, 401: ErrorResponse },
+  responses: { 201: Order, 400: ErrorResponse, 401: ErrorResponse, 409: OrderItemsUnavailableError },
 };
 
 export type get_Orders_list = __TypedOpenapi.Endpoints.get_Orders_list;
@@ -208,16 +218,6 @@ export const get_Orders_get = {
   responseFormat: z.literal("json"),
   parameters: { path: z.strictObject({ id: z.string() }) },
   responses: { 200: Order, 401: ErrorResponse, 404: ErrorResponse },
-};
-
-export type get_Catalog_listPickupPoints = __TypedOpenapi.Endpoints.get_Catalog_listPickupPoints;
-export const get_Catalog_listPickupPoints = {
-  method: z.literal("GET"),
-  path: z.literal("/pickup-points"),
-  requestFormat: z.literal("json"),
-  responseFormat: z.literal("json"),
-  parameters: z.never(),
-  responses: { 200: z.array(PickupPoint) },
 };
 
 export type get_Catalog_listProducts = __TypedOpenapi.Endpoints.get_Catalog_listProducts;
@@ -283,7 +283,6 @@ export const EndpointByMethod = {
     "/categories": get_Catalog_listCategories,
     "/orders": get_Orders_list,
     "/orders/{id}": get_Orders_get,
-    "/pickup-points": get_Catalog_listPickupPoints,
     "/products": get_Catalog_listProducts,
     "/products/{slug}": get_Catalog_getProduct,
     "/promos": get_Home_listPromos,

@@ -96,12 +96,6 @@ model PromoBlock {
   product: ProductSummary;
 }
 
-model PickupPoint {
-  id: string;
-  name: string;
-  address: string;
-}
-
 model OrderItem {
   id: string;
   productId?: string;
@@ -114,18 +108,33 @@ model OrderItem {
 
 model Order {
   id: string;
-  status: "NEW" | "PROCESSING" | "SHIPPED" | "COMPLETED" | "CANCELLED";
-  deliveryType: "DELIVERY" | "PICKUP";
+  /** Оформленный заказ сразу «Оплачен»; смены статусов нет */
+  status: "paid";
+  deliveryType: "delivery" | "pickup";
   address?: string;
-  pickupPointId?: string;
-  /** Развёрнутый пункт самовывоза; null для доставки или если пункт удалён */
-  pickupPoint: PickupPoint | null;
   recipientName: string;
   phone: string;
-  comment?: string;
   total: Money;
   createdAt: utcDateTime;
   items: OrderItem[];
+}
+
+@doc("Проблемная позиция при атомарном отказе оформления")
+model OrderProblemItem {
+  productId: string;
+  /** Название на момент отказа; отсутствует, если товар не найден */
+  title?: string;
+  reason: "not_found" | "unavailable";
+  requested: int32;
+  available: int32;
+}
+
+model OrderItemsUnavailableError {
+  error: {
+    code: "ORDER_ITEMS_UNAVAILABLE";
+    message: string;
+    details: OrderProblemItem[];
+  };
 }
 
 model RegisterBody {
@@ -161,14 +170,13 @@ model OrderLineInput {
 }
 
 model CreateOrderBody {
-  deliveryType: "DELIVERY" | "PICKUP";
+  deliveryType: "delivery" | "pickup";
+  /** Обязателен при delivery; при pickup не передаётся */
   address?: string;
-  pickupPointId?: string;
   recipientName: string;
   phone: string;
-  comment?: string;
 
-  /** Состав заказа с клиента (корзина живёт в localStorage); max = MAX_CART_IDS */
+  /** Состав заказа с клиента (корзина живёт в localStorage); max = MAX_CART_IDS. Без цен. */
   @minItems(1)
   @maxItems(100)
   items: OrderLineInput[];
@@ -253,10 +261,6 @@ interface Catalog {
     @statusCode statusCode: 404;
     @body body: ErrorResponse;
   };
-
-  @get
-  @route("/pickup-points")
-  listPickupPoints(): PickupPoint[];
 }
 
 // --- Home ---
@@ -280,6 +284,9 @@ interface Orders {
   } | {
     @statusCode statusCode: 400 | 401;
     @body body: ErrorResponse;
+  } | {
+    @statusCode statusCode: 409;
+    @body body: OrderItemsUnavailableError;
   };
 
   @get

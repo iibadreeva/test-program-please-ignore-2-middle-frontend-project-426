@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { CartView } from "@/features/cart-view";
+import { __resetCartCatalogForTests } from "@/features/cart/cart-catalog";
 import { useCartStore } from "@/features/cart/store";
 import type { ProductSummary } from "@/shared/api-contract";
 
@@ -32,6 +33,7 @@ function product(overrides: Partial<ProductSummary> = {}): ProductSummary {
 describe("CartView", () => {
   beforeEach(() => {
     localStorage.clear();
+    __resetCartCatalogForTests();
     useCartStore.setState({ refs: [], hydrated: true });
     mockedGetCartProducts.mockReset();
   });
@@ -162,8 +164,7 @@ describe("CartView", () => {
 
     await waitFor(() => {
       expect(screen.getByTestId("cart-item-qty")).toHaveProperty("value", "2");
+      expect(useCartStore.getState().refs).toEqual([{ productId: "prod-1", quantity: 2 }]);
     });
-    expect(useCartStore.getState().refs).toEqual([{ productId: "prod-1", quantity: 2 }]);
   });
 });
-

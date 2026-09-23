@@ -13,11 +13,7 @@ enum DeliveryType {
 }
 
 enum OrderStatus {
-  NEW
-  PROCESSING
-  SHIPPED
-  COMPLETED
-  CANCELLED
+  PAID
 }
 
 model User {
@@ -94,28 +90,18 @@ model PromoBlock {
   @@index([sortOrder])
 }
 
-model PickupPoint {
-  id      String  @id @default(cuid())
-  name    String  @unique
-  address String
-  orders  Order[]
-}
-
 model Order {
   id             String       @id @default(cuid())
   userId         String
-  status         OrderStatus  @default(NEW)
+  status         OrderStatus  @default(PAID)
   deliveryType   DeliveryType
   address        String?
-  pickupPointId  String?
   recipientName  String
   phone          String
-  comment        String?
   total          Int
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   user           User         @relation(fields: [userId], references: [id])
-  pickupPoint    PickupPoint? @relation(fields: [pickupPointId], references: [id])
   items          OrderItem[]
 
   @@index([userId])

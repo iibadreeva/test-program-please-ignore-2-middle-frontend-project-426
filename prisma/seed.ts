@@ -463,12 +463,6 @@ function expandCatalog(base: SeedProduct[]): SeedProduct[] {
   return [...base, ...extras];
 }
 
-const pickupPoints = [
-  { name: "Пункт HexParts · Центр", address: "Москва, Тверская ул., 12" },
-  { name: "Пункт HexParts · Юг", address: "Москва, Варшавское шоссе, 95" },
-  { name: "Пункт HexParts · Север", address: "Москва, Ленинградский пр-т, 47" },
-] as const;
-
 /** Home promo blocks — one product each, always in stock in the base catalog. */
 const promoBlocks = [
   {
@@ -567,16 +561,6 @@ async function seedCatalog() {
       }),
     );
   }
-
-  await Promise.all(
-    pickupPoints.map((point) =>
-      prisma.pickupPoint.upsert({
-        where: { name: point.name },
-        create: point,
-        update: { address: point.address },
-      }),
-    ),
-  );
 
   const promoCount = await seedPromos();
 

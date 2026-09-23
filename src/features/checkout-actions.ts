@@ -3,16 +3,26 @@
 import { revalidatePath } from "next/cache";
 import { ZodError } from "zod";
 import { requireUser } from "@/server/auth/session";
-import { createOrder, createOrderSchema, OrderError } from "@/server/services/orders";
+import {
+  createOrder,
+  createOrderSchema,
+  OrderError,
+  OrderItemsUnavailableError,
+} from "@/server/services/orders";
+import type { OrderProblemItem } from "@/shared/api-contract";
 
 export type CheckoutFormState = {
   ok: boolean;
   orderId?: string;
   message?: string;
+  problems?: OrderProblemItem[];
   fieldErrors?: Record<string, string[] | undefined>;
 };
 
 function fail(error: unknown): CheckoutFormState {
+  if (error instanceof OrderItemsUnavailableError) {
+    return { ok: false, message: error.message, problems: error.problems };
+  }
   if (error instanceof OrderError) {
     return { ok: false, message: error.message };
   }
@@ -42,15 +52,13 @@ export async function checkoutAction(
 ): Promise<CheckoutFormState> {
   try {
     const user = await requireUser();
-    const deliveryType = String(formData.get("deliveryType") ?? "DELIVERY");
+    const deliveryType = String(formData.get("deliveryType") ?? "delivery");
 
     const parsed = createOrderSchema.safeParse({
       deliveryType,
       address: String(formData.get("address") ?? "") || undefined,
-      pickupPointId: String(formData.get("pickupPointId") ?? "") || undefined,
       recipientName: String(formData.get("recipientName") ?? ""),
       phone: String(formData.get("phone") ?? ""),
-      comment: String(formData.get("comment") ?? "") || undefined,
       items: parseItems(formData.get("items")),
     });
 
@@ -62,10 +70,9 @@ export async function checkoutAction(
 
     revalidatePath("/cart");
     revalidatePath("/account");
-    revalidatePath("/account/orders");
     revalidatePath("/", "layout");
 
-    // Клиент сам очистит корзину и перейдёт на заказ — не ждём redirect до очистки localStorage.
+    // Клиент сам очистит корзину и перейдёт на success — не ждём redirect до очистки localStorage.
     return { ok: true, orderId: order.id };
   } catch (error) {
     return fail(error);
