@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CartView } from "@/features/cart-view";
+import { CartView } from "@/features/cart/cart-view";
 
 export const dynamic = "force-dynamic";
 

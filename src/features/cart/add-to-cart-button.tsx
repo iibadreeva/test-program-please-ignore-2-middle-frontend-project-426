@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useCartStore } from "@/features/cart/store";
+import { useCartHydrated, useCartStore } from "@/features/cart/store";
 
 type Props = {
   productId: string;
@@ -10,10 +10,14 @@ type Props = {
 
 export function AddToCartButton({ productId, available }: Props) {
   const add = useCartStore((s) => s.add);
+  const hydrated = useCartHydrated();
   const [done, setDone] = useState(false);
 
+  // До rehydrate add затрётся пустым localStorage — не даём кликнуть раньше времени.
+  const canAdd = available && hydrated;
+
   function onClick() {
-    if (!available) return;
+    if (!canAdd) return;
     add(productId, 1);
     setDone(true);
   }
@@ -24,7 +28,7 @@ export function AddToCartButton({ productId, available }: Props) {
         type="button"
         className="mt-8 bg-accent px-5 py-2.5 font-medium text-bg transition hover:bg-accent-dim disabled:opacity-40"
         data-testid="product-add-to-cart"
-        disabled={!available}
+        disabled={!canAdd}
         onClick={onClick}
       >
         {available ? "В корзину" : "Нет в наличии"}

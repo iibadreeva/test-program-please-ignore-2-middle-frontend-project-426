@@ -10,9 +10,8 @@ import {
 } from "@/features/cart/checkout-cart-snapshot";
 import { useCartMerged, type UseCartMergedResult } from "@/features/cart/use-cart-merged";
 import { useCartStore } from "@/features/cart/store";
-import { checkoutAction, type CheckoutFormState } from "@/features/checkout-actions";
-import { formatPrice } from "@/shared/format";
-import { fromMoney } from "@/shared/money";
+import { checkoutAction, type CheckoutFormState } from "@/features/checkout/actions";
+import { formatMoney, fromMoney } from "@/shared/money";
 import { checkoutSuccessPath } from "@/shared/auth-next";
 import type { OrderProblemItem } from "@/shared/api-contract";
 
@@ -240,7 +239,7 @@ export function CheckoutForm({ defaultName = "" }: Props) {
                 {line.product.title} × {line.quantity}
               </span>
               <span className="font-mono">
-                {formatPrice(fromMoney(line.product.price) * line.quantity)}
+                {formatMoney(fromMoney(line.product.price) * line.quantity)}
               </span>
             </li>
           ))}
@@ -254,7 +253,7 @@ export function CheckoutForm({ defaultName = "" }: Props) {
         </ul>
         <p className="mt-4 flex justify-between border-t border-border pt-4 font-mono text-lg text-accent">
           <span>Итого</span>
-          <span data-testid="checkout-preview-total">{formatPrice(merged.total)}</span>
+          <span data-testid="checkout-preview-total">{formatMoney(merged.total)}</span>
         </p>
         <button
           type="submit"

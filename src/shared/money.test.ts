@@ -1,16 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { formatPrice } from "@/shared/format";
-import { fromMoney, toMoney } from "@/shared/money";
+import { formatMoney, fromMoney, toMoney } from "@/shared/money";
 
-describe("formatPrice", () => {
-  it("formats whole rubles as RUB without fraction", () => {
-    expect(formatPrice(68990)).toMatch(/68[\s\u00a0]?990/);
-    expect(formatPrice("68990")).toMatch(/₽|RUB|руб/i);
+describe("formatMoney", () => {
+  it("formats integer rubles for display", () => {
+    expect(formatMoney(68990)).toMatch(/68[\s\u00a0]?990/);
+    expect(formatMoney("68990")).toMatch(/₽|RUB|руб/i);
   });
 
-  it("handles zero", () => {
-    expect(formatPrice(0)).toMatch(/0/);
-    expect(formatPrice("0")).toMatch(/0/);
+  it("formats zero", () => {
+    expect(formatMoney(0)).toMatch(/0/);
+    expect(formatMoney("0")).toMatch(/0/);
   });
 });
 

@@ -1,7 +1,7 @@
 import { Suspense } from "react";
-import { CatalogFilters } from "@/features/catalog-filters";
-import { ProductCard } from "@/components/product-card";
-import { CatalogPagination } from "@/components/catalog-pagination";
+import { CatalogFilters } from "@/features/catalog/catalog-filters";
+import { ProductCard } from "@/features/catalog/product-card";
+import { CatalogPagination } from "@/features/catalog/catalog-pagination";
 import {
   listBrands,
   listCategories,

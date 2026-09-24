@@ -24,7 +24,7 @@ describe("GET /api/health", () => {
 
   it("returns 503 when database is unreachable", async () => {
     queryRaw.mockRejectedValue(new Error("connection refused"));
-    // Re-import is cached; module already loaded — call GET again with failed mock
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     const { GET } = await import("./route");
     const res = await GET();
     expect(res.status).toBe(503);
@@ -32,5 +32,6 @@ describe("GET /api/health", () => {
     expect(body).toMatchObject({
       error: { code: "INTERNAL_ERROR" },
     });
+    spy.mockRestore();
   });
 });

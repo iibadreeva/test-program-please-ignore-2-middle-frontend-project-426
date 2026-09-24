@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Order } from "@/shared/api-contract";
-import { formatPrice } from "@/shared/format";
+import { formatMoney } from "@/shared/money";
 import { OrderDetails } from "@/features/orders/order-details";
 import { orderStatusLabel } from "@/shared/order-status";
 
@@ -36,7 +36,7 @@ function AccountOrderItem({ order, initiallyOpen }: OrderItemProps) {
             {orderStatusLabel(order.status)}
           </p>
         </div>
-        <p className="font-mono text-accent">{formatPrice(order.total)}</p>
+        <p className="font-mono text-accent">{formatMoney(order.total)}</p>
       </summary>
       <div className="border-t border-border px-4 py-4">
         <OrderDetails order={order} />

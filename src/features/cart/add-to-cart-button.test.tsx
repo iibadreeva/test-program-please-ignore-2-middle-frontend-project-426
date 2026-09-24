@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { AddToCartButton } from "@/features/add-to-cart-button";
+import { AddToCartButton } from "@/features/cart/add-to-cart-button";
 import { useCartStore } from "@/features/cart/store";
 
 describe("AddToCartButton", () => {
@@ -25,6 +25,16 @@ describe("AddToCartButton", () => {
     expect((button as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(button);
 
+    expect(useCartStore.getState().refs).toEqual([]);
+  });
+
+  it("disabled until cart store is hydrated", () => {
+    useCartStore.setState({ hydrated: false });
+    render(<AddToCartButton productId="prod-1" available />);
+
+    const button = screen.getByTestId("product-add-to-cart");
+    expect((button as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(button);
     expect(useCartStore.getState().refs).toEqual([]);
   });
 });

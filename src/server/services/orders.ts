@@ -1,10 +1,13 @@
 import { DeliveryType, OrderStatus, Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/server/db";
+import { OrderError, OrderItemsUnavailableError } from "@/server/errors";
 import { createOrderBodySchema, type OrderProblemItem } from "@/shared/api-contract";
 import { toMoney } from "@/shared/money";
 import type { Order as ContractOrder } from "@/shared/api-contract";
 import { MAX_CART_IDS, MAX_CART_LINE_QTY } from "@/shared/constants";
+
+export { OrderError, OrderItemsUnavailableError } from "@/server/errors";
 
 /** Максимальная длина адреса доставки (символы после trim). */
 const MAX_ADDRESS_LENGTH = 500;
@@ -54,27 +57,6 @@ export type BuiltOrderLine = {
   imageUrlSnapshot: string;
   quantity: number;
 };
-
-export class OrderError extends Error {
-  constructor(
-    public code: "VALIDATION_ERROR" | "UNAUTHORIZED" | "NOT_FOUND" | "CONFLICT",
-    message: string,
-  ) {
-    super(message);
-    this.name = "OrderError";
-  }
-}
-
-/** Атомарный отказ: перечень всех проблемных позиций, заказ не создаётся. */
-export class OrderItemsUnavailableError extends OrderError {
-  constructor(
-    public problems: OrderProblem[],
-    message = "Некоторые товары недоступны",
-  ) {
-    super("CONFLICT", message);
-    this.name = "OrderItemsUnavailableError";
-  }
-}
 
 /** Схлопнуть дубли productId, чтобы нельзя было обойти проверку остатка. */
 export function aggregateOrderItems(items: OrderLineInput[]): OrderLineInput[] {

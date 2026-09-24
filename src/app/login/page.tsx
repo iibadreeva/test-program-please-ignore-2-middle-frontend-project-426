@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { LoginForm } from "@/features/login-form";
+import { LoginForm } from "@/features/auth/login-form";
 import { getCurrentUser } from "@/server/auth/session";
 import { resolveLoginNext } from "@/shared/auth-next";
 

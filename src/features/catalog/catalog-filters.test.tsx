@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { CatalogFilters } from "@/features/catalog-filters";
+import { CatalogFilters } from "@/features/catalog/catalog-filters";
 
 const push = vi.fn();
 let currentParams = new URLSearchParams();

@@ -19,6 +19,12 @@ import {
 } from "@/generated/api";
 import type { Endpoints } from "@/generated/api.types";
 
+/**
+ * Контрактные Zod-схемы и типы API.
+ * Парсинг request (body/query) в route handlers и server actions —
+ * только через схемы из этого модуля / generated, без ручных DTO.
+ */
+
 export {
   Money,
   CreateOrderBody as createOrderBodySchema,

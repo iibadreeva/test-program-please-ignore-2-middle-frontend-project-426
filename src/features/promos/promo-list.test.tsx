@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { PromoList } from "@/components/promo-list";
+import { PromoList } from "@/features/promos/promo-list";
 import type { PromoBlock } from "@/shared/api-contract";
 
 function block(overrides: Partial<PromoBlock> = {}): PromoBlock {

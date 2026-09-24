@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { CheckoutForm } from "@/features/checkout-form";
+import { CheckoutForm } from "@/features/checkout/form";
 import { useCartStore } from "@/features/cart/store";
 import type { UseCartMergedResult } from "@/features/cart/use-cart-merged";
 import { checkoutSuccessPath } from "@/shared/auth-next";
@@ -15,12 +15,12 @@ vi.mock("@/features/cart/use-cart-merged", () => ({
   useCartMerged: vi.fn(),
 }));
 
-vi.mock("@/features/checkout-actions", () => ({
+vi.mock("@/features/checkout/actions", () => ({
   checkoutAction: vi.fn(async () => ({ ok: false, message: "fail" })),
 }));
 
 import { useCartMerged } from "@/features/cart/use-cart-merged";
-import { checkoutAction } from "@/features/checkout-actions";
+import { checkoutAction } from "@/features/checkout/actions";
 
 const mockedUseCartMerged = vi.mocked(useCartMerged);
 const mockedCheckoutAction = vi.mocked(checkoutAction);

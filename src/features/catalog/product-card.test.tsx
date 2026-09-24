@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { ProductCard, type ProductCardData } from "@/components/product-card";
-import { PRODUCT_PLACEHOLDER_SRC } from "@/components/product-image";
+import { ProductCard, type ProductCardData } from "@/features/catalog/product-card";
+import { PRODUCT_PLACEHOLDER_SRC } from "@/features/catalog/product-image";
 
 function product(overrides: Partial<ProductCardData> = {}): ProductCardData {
   return {

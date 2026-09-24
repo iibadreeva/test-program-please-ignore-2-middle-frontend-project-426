@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ShoppingCart, User } from "lucide-react";
-import { CartBadge } from "@/components/cart-badge";
-import { logoutAction } from "@/features/auth-actions";
+import { CartBadge } from "@/features/cart/cart-badge";
+import { logoutAction } from "@/features/auth/actions";
 import { getCurrentUser } from "@/server/auth/session";
 
 export async function Header() {

@@ -1,5 +1,5 @@
 import type { Order } from "@/shared/api-contract";
-import { formatPrice } from "@/shared/format";
+import { formatMoney } from "@/shared/money";
 import { orderStatusLabel } from "@/shared/order-status";
 
 type Props = {
@@ -56,16 +56,16 @@ export function OrderDetails({ order, showDelivery = true }: Props) {
             <div>
               <p className="font-medium">{item.titleSnapshot}</p>
               <p className="mt-1 font-mono text-muted">
-                {formatPrice(item.priceSnapshot)} × {item.quantity}
+                {formatMoney(item.priceSnapshot)} × {item.quantity}
               </p>
             </div>
-            <p className="font-mono text-accent">{formatPrice(item.lineTotal)}</p>
+            <p className="font-mono text-accent">{formatMoney(item.lineTotal)}</p>
           </li>
         ))}
       </ul>
 
       <p className="text-right font-mono text-xl text-accent" data-testid="order-total">
-        {formatPrice(order.total)}
+        {formatMoney(order.total)}
       </p>
     </div>
   );

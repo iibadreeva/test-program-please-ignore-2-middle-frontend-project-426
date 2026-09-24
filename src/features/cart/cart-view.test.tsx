@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { CartView } from "@/features/cart-view";
+import { CartView } from "@/features/cart/cart-view";
 import { __resetCartCatalogForTests } from "@/features/cart/cart-catalog";
 import { useCartStore } from "@/features/cart/store";
 import type { ProductSummary } from "@/shared/api-contract";

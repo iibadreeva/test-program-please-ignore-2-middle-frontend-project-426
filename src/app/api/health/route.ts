@@ -1,13 +1,11 @@
-import { apiError, apiOk } from "@/server/http";
+import { apiOk, withApiHandler } from "@/server/http";
 import { prisma } from "@/server/db";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  try {
+  return withApiHandler(async () => {
     await prisma.$queryRaw`SELECT 1`;
     return apiOk({ status: "ok" });
-  } catch {
-    return apiError(503, "INTERNAL_ERROR", "База данных недоступна");
-  }
+  }, "База данных недоступна");
 }

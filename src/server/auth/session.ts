@@ -2,6 +2,7 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import { prisma } from "@/server/db";
 import { generateSessionToken, hashToken } from "@/server/auth/session-token";
+import { AuthError } from "@/server/errors";
 import { SESSION_COOKIE, SESSION_COOKIE_MAX_AGE } from "@/shared/constants";
 
 export type PublicUser = {
@@ -79,12 +80,4 @@ export async function requireUser(): Promise<PublicUser> {
   return user;
 }
 
-export class AuthError extends Error {
-  constructor(
-    public code: "VALIDATION_ERROR" | "UNAUTHORIZED" | "CONFLICT",
-    message: string,
-  ) {
-    super(message);
-    this.name = "AuthError";
-  }
-}
+export { AuthError } from "@/server/errors";

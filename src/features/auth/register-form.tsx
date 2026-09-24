@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import { registerAction, type AuthFormState } from "@/features/auth-actions";
+import { registerAction, type AuthFormState } from "@/features/auth/actions";
 
 const initial: AuthFormState = { ok: false };
 

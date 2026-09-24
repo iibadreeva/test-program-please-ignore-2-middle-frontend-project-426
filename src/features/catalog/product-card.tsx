@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ProductImage } from "@/components/product-image";
+import { ProductImage } from "@/features/catalog/product-image";
 import { formatMoney } from "@/shared/money";
 import type { ProductSummary } from "@/shared/api-contract";
 

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { logoutAction } from "@/features/auth-actions";
+import { logoutAction } from "@/features/auth/actions";
 import { AccountOrders } from "@/features/orders/account-orders";
 import { requireUser } from "@/server/auth/session";
 import { listOrders } from "@/server/services/orders";

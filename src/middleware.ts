@@ -4,6 +4,12 @@ import { SESSION_COOKIE } from "@/shared/constants";
 
 const PROTECTED_PREFIXES = ["/account", "/checkout"];
 
+/**
+ * Middleware — только быстрый UX-фильтр по наличию session cookie.
+ * Не проверяет сессию в БД и не является настоящей авторизацией:
+ * реальная проверка всегда на сервере через requireUser / getCurrentUser
+ * (страницы, server actions, protected API).
+ */
 export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const needsAuth = PROTECTED_PREFIXES.some(

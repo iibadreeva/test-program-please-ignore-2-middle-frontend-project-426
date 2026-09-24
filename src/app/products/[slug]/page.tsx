@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AddToCartButton } from "@/features/add-to-cart-button";
-import { ProductImage } from "@/components/product-image";
-import { formatPrice } from "@/shared/format";
+import { AddToCartButton } from "@/features/cart/add-to-cart-button";
+import { ProductImage } from "@/features/catalog/product-image";
+import { formatMoney } from "@/shared/money";
 import { getProductBySlug } from "@/server/services/catalog";
 
 export const dynamic = "force-dynamic";
@@ -42,11 +42,11 @@ export default async function ProductPage({ params }: Props) {
         </h1>
         <div className="mt-4 flex items-baseline gap-3">
           <span className="font-mono text-2xl text-accent" data-testid="product-price">
-            {formatPrice(product.price)}
+            {formatMoney(product.price)}
           </span>
           {product.oldPrice ? (
             <span className="font-mono text-muted line-through">
-              {formatPrice(product.oldPrice)}
+              {formatMoney(product.oldPrice)}
             </span>
           ) : null}
         </div>

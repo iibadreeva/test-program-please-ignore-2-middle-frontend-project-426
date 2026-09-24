@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PromoList } from "@/components/promo-list";
+import { PromoList } from "@/features/promos/promo-list";
 import { listPromoBlocks } from "@/server/services/promos";
 import type { PromoBlock } from "@/shared/api-contract";
 

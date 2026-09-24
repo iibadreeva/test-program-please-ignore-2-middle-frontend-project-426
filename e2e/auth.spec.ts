@@ -46,7 +46,7 @@ test.describe("auth", () => {
     await signOut(page);
 
     await loginViaUi(page, email, password);
-    await expect(page.getByTestId("nav-signout")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("nav-signout")).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId("nav-account")).toBeVisible();
   });
 

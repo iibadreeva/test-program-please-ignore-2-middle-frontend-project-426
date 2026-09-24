@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { RegisterForm } from "@/features/register-form";
+import { RegisterForm } from "@/features/auth/register-form";
 import { getCurrentUser } from "@/server/auth/session";
 
 export const dynamic = "force-dynamic";
