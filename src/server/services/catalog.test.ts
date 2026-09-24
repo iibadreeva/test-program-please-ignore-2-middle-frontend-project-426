@@ -25,10 +25,10 @@ describe("buildProductWhere", () => {
     });
   });
 
-  it("keeps unavailable products unless the availability filter is on", () => {
+  it("фильтрует наличие по флагу available", () => {
     expect(buildProductWhere({}).stock).toBeUndefined();
-    expect(buildProductWhere({ available: false }).stock).toBeUndefined();
     expect(buildProductWhere({ available: true }).stock).toEqual({ gt: 0 });
+    expect(buildProductWhere({ available: false }).stock).toEqual({ lte: 0 });
   });
 
   it("searches by title only, case-insensitively", () => {

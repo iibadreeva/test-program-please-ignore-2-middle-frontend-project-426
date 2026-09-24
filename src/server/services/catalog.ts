@@ -90,8 +90,10 @@ export function buildProductWhere(input: ListProductsInput): Prisma.ProductWhere
     if (input.minPrice != null) where.price.gte = input.minPrice;
     if (input.maxPrice != null) where.price.lte = input.maxPrice;
   }
-  if (input.available) {
+  if (input.available === true) {
     where.stock = { gt: 0 };
+  } else if (input.available === false) {
+    where.stock = { lte: 0 };
   }
 
   const search = input.search?.trim();

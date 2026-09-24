@@ -55,7 +55,12 @@ async function fetchUnavailableProduct(request: APIRequestContext): Promise<Prod
   const response = await request.get("/api/products?available=false&perPage=1");
   expect(response.ok()).toBeTruthy();
   const body = (await response.json()) as { items: ProductSummary[] };
-  return body.items[0] ?? null;
+  const item = body.items[0] ?? null;
+  if (item) {
+    expect(item.available).toBe(false);
+    expect(item.stock).toBe(0);
+  }
+  return item;
 }
 
 test.describe("оформление заказа", () => {
