@@ -30,7 +30,7 @@ export function PromoList({ blocks }: Props) {
           {blocks.map((block) => (
             <li key={block.id}>
               <Link
-                href={`/products/${block.product.slug}`}
+                href={`/products/${encodeURIComponent(block.product.slug)}`}
                 className="flex h-full flex-col border border-border bg-surface p-5 transition hover:border-accent"
                 data-testid="home-promo-item"
               >

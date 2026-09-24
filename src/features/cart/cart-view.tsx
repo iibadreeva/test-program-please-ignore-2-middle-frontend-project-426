@@ -56,7 +56,7 @@ export function CartView() {
             />
             <div>
               <Link
-                href={`/products/${item.product.slug}`}
+                href={`/products/${encodeURIComponent(item.product.slug)}`}
                 className="font-display font-medium hover:text-accent"
                 data-testid="cart-item-title"
               >

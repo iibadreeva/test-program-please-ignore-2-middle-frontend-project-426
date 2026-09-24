@@ -18,7 +18,7 @@ type Props = {
 };
 
 export function ProductCard({ product, testIdPrefix = "catalog-item" }: Props) {
-  const href = `/products/${product.slug}`;
+  const href = `/products/${encodeURIComponent(product.slug)}`;
 
   return (
     <article

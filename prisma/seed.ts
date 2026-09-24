@@ -360,7 +360,7 @@ const catalog: SeedProduct[] = [
   },
   // Peripherals
   {
-    slug: "logitech-g pro-x",
+    slug: "logitech-g-pro-x",
     title: "Logitech G Pro X Superlight",
     description: "Лёгкая беспроводная мышь для киберспорта.",
     price: 11990,
