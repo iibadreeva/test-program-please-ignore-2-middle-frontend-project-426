@@ -36,6 +36,7 @@ model Session {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([expiresAt])
 }
 
 model Category {
@@ -74,7 +75,12 @@ model Product {
 
   @@index([categoryId])
   @@index([brandId])
-  @@index([price])
+  // Композиты под orderBy + tie-break по id в catalog.ts.
+  @@index([price, id])
+  @@index([createdAt, id])
+  @@index([rating, id])
+  // Фильтр available: stock gt/lte 0.
+  @@index([stock])
 }
 
 model PromoBlock {
@@ -104,7 +110,7 @@ model Order {
   user           User         @relation(fields: [userId], references: [id])
   items          OrderItem[]
 
-  @@index([userId])
+  @@index([userId, createdAt])
 }
 
 model OrderItem {
@@ -117,4 +123,7 @@ model OrderItem {
   quantity         Int
   order            Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product          Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([productId])
 }

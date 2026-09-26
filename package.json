@@ -15,6 +15,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "seed:build": "esbuild prisma/seed.ts --bundle --platform=node --format=cjs --outfile=dist/seed.cjs --external:@prisma/client",
     "db:studio": "prisma studio",
+    "sessions:cleanup": "tsx scripts/cleanup-sessions.ts",
     "postinstall": "prisma generate",
     "test": "vitest run",
     "test:watch": "vitest",

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const queryRaw = vi.fn();
+const captureException = vi.hoisted(() => vi.fn());
 
 vi.mock("@/server/db", () => ({
   prisma: {
@@ -8,9 +9,14 @@ vi.mock("@/server/db", () => ({
   },
 }));
 
+vi.mock("@sentry/nextjs", () => ({
+  captureException,
+}));
+
 describe("GET /api/health", () => {
   beforeEach(() => {
     queryRaw.mockReset();
+    captureException.mockClear();
   });
 
   it("returns 200 when database responds", async () => {
@@ -32,6 +38,8 @@ describe("GET /api/health", () => {
     expect(body).toMatchObject({
       error: { code: "INTERNAL_ERROR" },
     });
+    // Health-probe не должен засыпать Sentry при даунтайме БД.
+    expect(captureException).not.toHaveBeenCalled();
     spy.mockRestore();
   });
 });

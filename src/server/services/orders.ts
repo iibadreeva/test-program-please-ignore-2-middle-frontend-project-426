@@ -70,10 +70,16 @@ export function aggregateOrderItems(items: OrderLineInput[]): OrderLineInput[] {
       `В заказе не больше ${MAX_CART_IDS} позиций`,
     );
   }
-  return [...byId.entries()].map(([productId, quantity]) => ({
-    productId,
-    quantity: Math.min(quantity, MAX_CART_LINE_QTY),
-  }));
+  return [...byId.entries()].map(([productId, quantity]) => {
+    // Не клампим молча: иначе клиент думает, что заказал больше, чем оформили.
+    if (quantity > MAX_CART_LINE_QTY) {
+      throw new OrderError(
+        "VALIDATION_ERROR",
+        `Количество товара не больше ${MAX_CART_LINE_QTY}`,
+      );
+    }
+    return { productId, quantity };
+  });
 }
 
 /**

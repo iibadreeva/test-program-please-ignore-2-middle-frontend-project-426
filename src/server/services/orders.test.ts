@@ -45,13 +45,19 @@ describe("aggregateOrderItems", () => {
     ]);
   });
 
-  it("caps aggregated quantity at MAX_CART_LINE_QTY", () => {
-    expect(
+  it("rejects when aggregated quantity exceeds MAX_CART_LINE_QTY", () => {
+    expect(() =>
       aggregateOrderItems([
         { productId: "a", quantity: MAX_CART_LINE_QTY },
         { productId: "a", quantity: MAX_CART_LINE_QTY },
       ]),
-    ).toEqual([{ productId: "a", quantity: MAX_CART_LINE_QTY }]);
+    ).toThrow(OrderError);
+    expect(() =>
+      aggregateOrderItems([
+        { productId: "a", quantity: MAX_CART_LINE_QTY },
+        { productId: "a", quantity: MAX_CART_LINE_QTY },
+      ]),
+    ).toThrow(/не больше/);
   });
 
   it("rejects more than MAX_CART_IDS distinct products", () => {

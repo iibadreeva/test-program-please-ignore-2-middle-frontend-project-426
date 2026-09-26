@@ -49,6 +49,7 @@
 
 - Ответ **не кэшируется** (`dynamic = "force-dynamic"`) — каждый запрос выполняется заново.
 - Пример: [http://localhost:3000/api/health](http://localhost:3000/api/health)
+- Для алертов «БД лежит» опирайтесь на **этот** эндпоинт (`503`), а не на коды каталога/заказов: там сбои соединения Prisma дают `503`, а прочие unexpected — `500`.
 
 > Это HTTP-проверка приложения. Отдельно в `docker-compose.yml` у сервиса `db` есть Compose-`healthcheck` (`pg_isready`) — он нужен, чтобы контейнер `app` стартовал только после готовности Postgres.
 
@@ -213,6 +214,7 @@
 | `NEXT_PUBLIC_SENTRY_DSN` |      ❌\*     | DSN проекта Sentry (фронтенд + fallback для бэкенда)                                 |
 | `SENTRY_DSN`             |      ❌      | Опциональный DSN только для сервера (иначе берётся `NEXT_PUBLIC_SENTRY_DSN`)         |
 | `SENTRY_AUTH_TOKEN`      |      ❌\*     | Токен загрузки source maps при `next build` (не коммитить)                           |
+| `COOKIE_SECURE`          |      ❌      | `true`/`1` — флаг Secure у session-cookie. На HTTPS-хостинге (Render) задайте `true`. На HTTP (локально / проверка Хекслета) не ставьте: браузер иначе отбросит cookie |
 
 > \* Нужны для мониторинга ошибок на проде. Значения задаются в переменных окружения хостинга, не в коде.
 
@@ -286,6 +288,7 @@ docker compose up --build
 | `npm run db:deploy`   | Применение миграций Prisma к базе данных                        |
 | `npm run db:migrate`  | Создание новой миграции в процессе разработки                   |
 | `npm run db:seed`     | Идемпотентное наполнение каталога тестовыми данными             |
+| `npm run sessions:cleanup` | Удаление просроченных сессий (cron / вручную; на логине — редкий фоновый батч) |
 | `npm run seed:build`  | Сборка standalone-скрипта сида для Docker-образа                |
 | `npm run tsp:compile` | Компиляция спецификации TypeSpec в OpenAPI (`api/openapi.yaml`) |
 | `npm run api:types`   | Генерация Zod-схем и типов из OpenAPI (`src/generated/`)        |

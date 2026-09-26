@@ -1,9 +1,11 @@
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { prisma } from "@/server/db";
+import { scheduleOpportunisticSessionCleanup } from "@/server/auth/session-cleanup";
 import { generateSessionToken, hashToken } from "@/server/auth/session-token";
 import { AuthError } from "@/server/errors";
 import { SESSION_COOKIE, SESSION_COOKIE_MAX_AGE } from "@/shared/constants";
+import { isCookieSecure } from "@/shared/cookie-secure";
 
 export type PublicUser = {
   id: string;
@@ -21,7 +23,7 @@ function sessionCookieOptions(maxAge: number) {
     httpOnly: true,
     sameSite: "lax" as const,
     path: "/",
-    secure: process.env.COOKIE_SECURE === "true" || process.env.COOKIE_SECURE === "1",
+    secure: isCookieSecure(),
     maxAge,
   };
 }
@@ -30,6 +32,9 @@ export async function createSession(user: PublicUser): Promise<void> {
   const token = generateSessionToken();
   const tokenHash = hashToken(token);
   const expiresAt = new Date(Date.now() + SESSION_COOKIE_MAX_AGE * 1000);
+
+  // Редкий батч в фоне; полный cleanup — npm run sessions:cleanup.
+  scheduleOpportunisticSessionCleanup();
 
   await prisma.session.create({
     data: {

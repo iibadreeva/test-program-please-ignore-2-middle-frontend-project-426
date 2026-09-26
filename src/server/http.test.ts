@@ -1,9 +1,20 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import { ZodError, z } from "zod";
+import { Prisma } from "@prisma/client";
 import { AuthError, OrderError, OrderItemsUnavailableError } from "@/server/errors";
 import { mapErrorToResponse, withApiHandler } from "@/server/http";
 
+const captureException = vi.hoisted(() => vi.fn());
+
+vi.mock("@sentry/nextjs", () => ({
+  captureException,
+}));
+
 describe("mapErrorToResponse", () => {
+  beforeEach(() => {
+    captureException.mockClear();
+  });
+
   it("мапит ZodError в 400 VALIDATION_ERROR", async () => {
     const parsed = z.object({ email: z.string().email() }).safeParse({ email: "x" });
     expect(parsed.success).toBe(false);
@@ -14,6 +25,7 @@ describe("mapErrorToResponse", () => {
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error.code).toBe("VALIDATION_ERROR");
+    expect(captureException).not.toHaveBeenCalled();
   });
 
   it("мапит OrderItemsUnavailableError в 409", async () => {
@@ -50,19 +62,89 @@ describe("mapErrorToResponse", () => {
     expect(res.status).toBe(401);
   });
 
-  it("неизвестную ошибку отдаёт как 503 и логирует", async () => {
+  it("неизвестную ошибку отдаёт как 500, логирует и шлёт в Sentry", async () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const res = mapErrorToResponse(new Error("boom"), "База данных недоступна");
+    const boom = new Error("boom");
+    const res = mapErrorToResponse(boom, "Внутренняя ошибка");
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body.error.code).toBe("INTERNAL_ERROR");
+    expect(body.error.message).toBe("Внутренняя ошибка");
+    expect(spy).toHaveBeenCalled();
+    expect(captureException).toHaveBeenCalledWith(boom);
+    spy.mockRestore();
+  });
+
+  it("при serviceUnavailableFallback отдаёт 503, логирует, но не шлёт в Sentry", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const boom = new Error("boom");
+    const res = mapErrorToResponse(boom, "База данных недоступна", {
+      serviceUnavailableFallback: true,
+    });
     expect(res.status).toBe(503);
     const body = await res.json();
     expect(body.error.code).toBe("INTERNAL_ERROR");
     expect(body.error.message).toBe("База данных недоступна");
     expect(spy).toHaveBeenCalled();
+    expect(captureException).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
+  it("ошибку соединения Prisma отдаёт как 503, логирует, но не шлёт в Sentry", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const prismaError = new Prisma.PrismaClientKnownRequestError("Can't reach database", {
+      code: "P1001",
+      clientVersion: "test",
+    });
+    const res = mapErrorToResponse(prismaError, "База данных недоступна");
+    expect(res.status).toBe(503);
+    expect(spy).toHaveBeenCalled();
+    // Даунтайм БД алертим через /api/health, а не через flood в Sentry.
+    expect(captureException).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
+  it("timeout пула Prisma (P2024) отдаёт как 503 и шлёт в Sentry", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const prismaError = new Prisma.PrismaClientKnownRequestError("Timed out fetching a new connection", {
+      code: "P2024",
+      clientVersion: "test",
+    });
+    const res = mapErrorToResponse(prismaError, "База данных недоступна");
+    expect(res.status).toBe(503);
+    // P2024 может быть утечкой пула — в Sentry, чтобы не пропустить регрессию.
+    expect(captureException).toHaveBeenCalledWith(prismaError);
+    spy.mockRestore();
+  });
+
+  it("PrismaClientUnknownRequestError отдаёт как 503 и шлёт в Sentry", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const prismaError = new Prisma.PrismaClientUnknownRequestError("Response from the Engine was empty", {
+      clientVersion: "test",
+    });
+    const res = mapErrorToResponse(prismaError, "База данных недоступна");
+    expect(res.status).toBe(503);
+    // Unknown шире «нет соединения» — в Sentry, чтобы не прятать сбои engine.
+    expect(captureException).toHaveBeenCalledWith(prismaError);
+    spy.mockRestore();
+  });
+
+  it("PrismaClientRustPanicError отдаёт как 503 и шлёт в Sentry", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const prismaError = new Prisma.PrismaClientRustPanicError("PANIC in query engine", "test");
+    const res = mapErrorToResponse(prismaError, "База данных недоступна");
+    expect(res.status).toBe(503);
+    // Panic engine — баг/коррупция, не чистый аутаж; в Sentry, как P2024.
+    expect(captureException).toHaveBeenCalledWith(prismaError);
     spy.mockRestore();
   });
 });
 
 describe("withApiHandler", () => {
+  beforeEach(() => {
+    captureException.mockClear();
+  });
+
   it("возвращает ответ handler без изменений", async () => {
     const res = await withApiHandler(async () => new Response("ok", { status: 200 }), "fail");
     expect(res.status).toBe(200);
