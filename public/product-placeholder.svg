@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480" role="img" aria-label="7>1@065=85 =54>ABC?=>">
+  <rect width="640" height="480" fill="#1c2533" />
+  <g stroke="#2a3545" stroke-width="2">
+    <path d="M0 120h640M0 240h640M0 360h640M160 0v480M320 0v480M480 0v480" />
+  </g>
+  <g fill="none" stroke="#3dd6c6" stroke-width="6" stroke-linecap="square" opacity="0.75">
+    <rect x="230" y="168" width="180" height="132" />
+    <path d="M230 258l46-44 38 34 32-28 64 54" />
+    <circle cx="288" cy="204" r="14" />
+  </g>
+  <text
+    x="320"
+    y="348"
+    fill="#8b97a8"
+    font-family="'IBM Plex Sans', system-ui, sans-serif"
+    font-size="26"
+    text-anchor="middle"
+  >5B 87>1@065=8O</text>
+</svg>

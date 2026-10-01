@@ -1,0 +1,21 @@
+import { NextRequest } from "next/server";
+import { apiError, apiOk, STOCK_API_CACHE_HEADERS, withApiHandler } from "@/server/http";
+import { listProducts, type ProductSort } from "@/server/services/catalog";
+import { listProductsQuerySchema } from "@/shared/api-contract";
+
+export async function GET(request: NextRequest) {
+  return withApiHandler(async () => {
+    const raw = Object.fromEntries(request.nextUrl.searchParams.entries());
+    const parsed = listProductsQuerySchema.safeParse(raw);
+
+    if (!parsed.success) {
+      return apiError(400, "VALIDATION_ERROR", "Некорректные параметры фильтра", parsed.error.flatten());
+    }
+
+    const data = await listProducts({
+      ...parsed.data,
+      sort: parsed.data.sort as ProductSort,
+    });
+    return apiOk(data, 200, STOCK_API_CACHE_HEADERS);
+  }, "База данных недоступна");
+}

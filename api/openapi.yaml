@@ -1,0 +1,687 @@
+openapi: 3.0.0
+info:
+  title: HexParts Shop API
+  version: 0.0.0
+tags:
+  - name: Auth
+  - name: Catalog
+  - name: Home
+  - name: Orders
+paths:
+  /auth/login:
+    post:
+      operationId: Auth_login
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPublic'
+        '401':
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginBody'
+  /auth/logout:
+    post:
+      operationId: Auth_logout
+      parameters: []
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+      tags:
+        - Auth
+  /auth/me:
+    get:
+      operationId: Auth_me
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPublic'
+        '401':
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      tags:
+        - Auth
+  /auth/register:
+    post:
+      operationId: Auth_register
+      parameters: []
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPublic'
+        '400':
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: The request conflicts with the current state of the server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterBody'
+  /brands:
+    get:
+      operationId: Catalog_listBrands
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Brand'
+      tags:
+        - Catalog
+  /categories:
+    get:
+      operationId: Catalog_listCategories
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+      tags:
+        - Catalog
+  /orders:
+    post:
+      operationId: Orders_create
+      parameters: []
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: The request conflicts with the current state of the server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderItemsUnavailableError'
+      tags:
+        - Orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderBody'
+    get:
+      operationId: Orders_list
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+        '401':
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      tags:
+        - Orders
+  /orders/{id}:
+    get:
+      operationId: Orders_get
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '401':
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: The server cannot find the requested resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      tags:
+        - Orders
+  /products:
+    get:
+      operationId: Catalog_listProducts
+      parameters:
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+          explode: false
+        - name: brand
+          in: query
+          required: false
+          schema:
+            type: string
+          explode: false
+        - name: minPrice
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+          explode: false
+        - name: maxPrice
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+          explode: false
+        - name: available
+          in: query
+          required: false
+          description: Оставить только доступные товары
+          schema:
+            type: boolean
+          explode: false
+        - name: search
+          in: query
+          required: false
+          description: Поиск по названию товара
+          schema:
+            type: string
+          explode: false
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - price_asc
+              - price_desc
+              - rating_desc
+              - newest
+          explode: false
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+          explode: false
+        - name: perPage
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductListResponse'
+      tags:
+        - Catalog
+  /products/{slug}:
+    get:
+      operationId: Catalog_getProduct
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDetail'
+        '404':
+          description: The server cannot find the requested resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      tags:
+        - Catalog
+  /promos:
+    get:
+      operationId: Home_listPromos
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PromoBlock'
+      tags:
+        - Home
+components:
+  schemas:
+    Brand:
+      type: object
+      required:
+        - id
+        - slug
+        - name
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        name:
+          type: string
+    Category:
+      type: object
+      required:
+        - id
+        - slug
+        - name
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        name:
+          type: string
+    CreateOrderBody:
+      type: object
+      required:
+        - deliveryType
+        - recipientName
+        - phone
+        - items
+      properties:
+        deliveryType:
+          type: string
+          enum:
+            - delivery
+            - pickup
+        address:
+          type: string
+          description: Обязателен при delivery; при pickup не передаётся
+        recipientName:
+          type: string
+        phone:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderLineInput'
+          minItems: 1
+          maxItems: 100
+          description: Состав заказа с клиента (корзина живёт в localStorage); max = MAX_CART_IDS. Без цен.
+    ErrorBody:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details: {}
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          $ref: '#/components/schemas/ErrorBody'
+    LoginBody:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          minLength: 1
+          format: email
+        password:
+          type: string
+          minLength: 1
+    Money:
+      type: string
+      pattern: ^(0|[1-9][0-9]*)$
+      description: Денежная сумма в целых рублях (десятичная строка без копеек, без ведущих нулей)
+    Order:
+      type: object
+      required:
+        - id
+        - status
+        - deliveryType
+        - recipientName
+        - phone
+        - total
+        - createdAt
+        - items
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum:
+            - paid
+          description: Оформленный заказ сразу «Оплачен»; смены статусов нет
+        deliveryType:
+          type: string
+          enum:
+            - delivery
+            - pickup
+        address:
+          type: string
+        recipientName:
+          type: string
+        phone:
+          type: string
+        total:
+          $ref: '#/components/schemas/Money'
+        createdAt:
+          type: string
+          format: date-time
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+    OrderItem:
+      type: object
+      required:
+        - id
+        - titleSnapshot
+        - priceSnapshot
+        - imageUrlSnapshot
+        - quantity
+        - lineTotal
+      properties:
+        id:
+          type: string
+        productId:
+          type: string
+        titleSnapshot:
+          type: string
+        priceSnapshot:
+          $ref: '#/components/schemas/Money'
+        imageUrlSnapshot:
+          type: string
+        quantity:
+          type: integer
+          format: int32
+        lineTotal:
+          $ref: '#/components/schemas/Money'
+    OrderItemsUnavailableError:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum:
+                - ORDER_ITEMS_UNAVAILABLE
+            message:
+              type: string
+            details:
+              type: array
+              items:
+                $ref: '#/components/schemas/OrderProblemItem'
+          required:
+            - code
+            - message
+            - details
+    OrderLineInput:
+      type: object
+      required:
+        - productId
+        - quantity
+      properties:
+        productId:
+          type: string
+          minLength: 1
+        quantity:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 99
+          description: Количество единиц товара (лимит совпадает с MAX_CART_LINE_QTY на клиенте)
+    OrderProblemItem:
+      type: object
+      required:
+        - productId
+        - reason
+        - requested
+        - available
+      properties:
+        productId:
+          type: string
+        title:
+          type: string
+          description: Название на момент отказа; отсутствует, если товар не найден
+        reason:
+          type: string
+          enum:
+            - not_found
+            - unavailable
+        requested:
+          type: integer
+          format: int32
+        available:
+          type: integer
+          format: int32
+      description: Проблемная позиция при атомарном отказе оформления
+    PaginationMeta:
+      type: object
+      required:
+        - page
+        - perPage
+        - total
+        - totalPages
+      properties:
+        page:
+          type: integer
+          format: int32
+        perPage:
+          type: integer
+          format: int32
+        total:
+          type: integer
+          format: int32
+        totalPages:
+          type: integer
+          format: int32
+    ProductDetail:
+      type: object
+      required:
+        - specs
+      properties:
+        specs:
+          type: object
+          additionalProperties: {}
+      allOf:
+        - $ref: '#/components/schemas/ProductSummary'
+    ProductListResponse:
+      type: object
+      required:
+        - items
+        - meta
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductSummary'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+    ProductSummary:
+      type: object
+      required:
+        - id
+        - slug
+        - title
+        - description
+        - price
+        - imageUrl
+        - stock
+        - available
+        - rating
+        - category
+        - brand
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+          description: Краткое описание для карточки в списке
+        price:
+          allOf:
+            - $ref: '#/components/schemas/Money'
+          description: Цена в целых рублях
+          example: '16990'
+        oldPrice:
+          $ref: '#/components/schemas/Money'
+        imageUrl:
+          type: string
+          nullable: true
+          description: null означает, что изображения нет — клиент показывает заглушку
+        stock:
+          type: integer
+          format: int32
+        available:
+          type: boolean
+          description: Товар доступен к покупке (остаток больше нуля)
+        rating:
+          type: number
+          format: double
+        category:
+          $ref: '#/components/schemas/Category'
+        brand:
+          $ref: '#/components/schemas/Brand'
+    PromoBlock:
+      type: object
+      required:
+        - id
+        - title
+        - text
+        - product
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        text:
+          type: string
+        product:
+          allOf:
+            - $ref: '#/components/schemas/ProductSummary'
+          description: 'Товар всегда доступен к покупке: недоступные блоки не отдаются'
+      description: 'Промо-блок главной страницы: текст плюс товар, на который он ведёт'
+    RegisterBody:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          minLength: 1
+          format: email
+        password:
+          type: string
+          minLength: 8
+        name:
+          type: string
+          minLength: 2
+          maxLength: 80
+    UserPublic:
+      type: object
+      required:
+        - id
+        - email
+        - name
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+servers:
+  - url: http://localhost:3000/api
+    description: Local development
+    variables: {}
