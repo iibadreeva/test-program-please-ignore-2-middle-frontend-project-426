@@ -53,7 +53,7 @@ export function OrderDetails({ order, showDelivery = true }: Props) {
             className="flex flex-wrap items-baseline justify-between gap-2 border border-border bg-bg px-3 py-2 text-sm"
             data-testid="order-item"
           >
-            <div>
+            <div data-testid="account-order-line">
               <p className="font-medium">{item.titleSnapshot}</p>
               <p className="mt-1 font-mono text-muted">
                 {formatMoney(item.priceSnapshot)} × {item.quantity}

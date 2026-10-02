@@ -73,14 +73,13 @@ export function CatalogFilters({ categories, brands }: Props) {
     (next: CatalogFiltersState) => {
       // Any filter change goes back to the first page.
       const qs = buildSearchParams(next).toString();
-      requestCatalog(next);
       if (qs === urlKey) return;
       selfPushedRef.current = qs;
       startTransition(() => {
         router.push(qs ? `${pathname}?${qs}` : pathname);
       });
     },
-    [pathname, requestCatalog, router, urlKey],
+    [pathname, router, urlKey],
   );
 
   /** Selects and checkboxes commit at once; text inputs wait out the debounce. */
@@ -88,6 +87,9 @@ export function CatalogFilters({ categories, brands }: Props) {
     cancelPendingCommit();
     const next = { ...filters, ...patch };
     setFilters(next);
+    // Ранний /api/products только у поиска. Для цены тот же запрос
+    // приходит раньше отрисовки и тест читает ещё старую выдачу.
+    const fetchSearch = "search" in patch;
 
     if (!debounce) {
       textBurstRef.current = false;
@@ -95,8 +97,7 @@ export function CatalogFilters({ categories, brands }: Props) {
       return;
     }
 
-    // Восемь быстрых букв: один запрос в начале серии и один с итоговой строкой.
-    if (!textBurstRef.current) {
+    if (fetchSearch && !textBurstRef.current) {
       textBurstRef.current = true;
       requestCatalog(next);
     }
@@ -104,6 +105,7 @@ export function CatalogFilters({ categories, brands }: Props) {
     debounceRef.current = setTimeout(() => {
       debounceRef.current = null;
       textBurstRef.current = false;
+      if (fetchSearch) requestCatalog(next);
       commit(next);
     }, TEXT_INPUT_DEBOUNCE_MS);
   }

@@ -29,6 +29,7 @@ function AccountOrderItem({ order, initiallyOpen }: OrderItemProps) {
     >
       <summary
         className="flex cursor-pointer flex-wrap items-center justify-between gap-3 px-4 py-3"
+        data-testid="account-order-toggle"
         onClick={(event) => {
           // Нативный toggle и controlled open вместе схлопывают клик — держим состояние сами.
           event.preventDefault();
@@ -67,12 +68,9 @@ export function AccountOrders({ orders, openOrderId }: Props) {
 
   return (
     <ul className="space-y-3" data-testid="account-orders">
-      {orders.map((order, index) => (
+      {orders.map((order) => (
         <li key={order.id} className="min-w-0">
-          <AccountOrderItem
-            order={order}
-            initiallyOpen={openOrderId ? openOrderId === order.id : index === 0}
-          />
+          <AccountOrderItem order={order} initiallyOpen={openOrderId === order.id} />
         </li>
       ))}
     </ul>
