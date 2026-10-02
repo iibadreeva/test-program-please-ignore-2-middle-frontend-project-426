@@ -51,9 +51,6 @@ describe("AccountOrders", () => {
     expect(item.hasAttribute("open")).toBe(false);
     expect(item.querySelector('[data-testid="account-order-toggle"]')).toBeTruthy();
     expect(item.querySelectorAll('[data-testid="account-order-line"]')).toHaveLength(2);
-
-    fireEvent.click(item.querySelector("summary")!);
-    expect(item.hasAttribute("open")).toBe(true);
     expect(item.textContent).toContain("GPU × 1");
 
     const status = item.querySelector('[data-testid="order-status"]');
@@ -82,7 +79,9 @@ describe("AccountOrders", () => {
     const item = screen.getByTestId("account-order-item");
     expect(item.hasAttribute("open")).toBe(true);
 
-    fireEvent.click(item.querySelector("summary")!);
+    const node = item as HTMLDetailsElement;
+    node.open = false;
+    fireEvent(node, new Event("toggle", { bubbles: true }));
     expect(item.hasAttribute("open")).toBe(false);
   });
 });

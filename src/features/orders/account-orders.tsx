@@ -17,7 +17,7 @@ type OrderItemProps = {
   initiallyOpen: boolean;
 };
 
-/** Локальный open: deep link открывает заказ, пользователь может свернуть. */
+/** open управляется из onToggle: клик по summary не перебивается preventDefault. */
 function AccountOrderItem({ order, initiallyOpen }: OrderItemProps) {
   const [open, setOpen] = useState(initiallyOpen);
 
@@ -26,15 +26,13 @@ function AccountOrderItem({ order, initiallyOpen }: OrderItemProps) {
       className="border border-border bg-surface open:border-accent"
       data-testid="account-order-item"
       open={open}
+      onToggle={(event) => {
+        setOpen(event.currentTarget.open);
+      }}
     >
       <summary
         className="flex cursor-pointer flex-wrap items-center justify-between gap-3 px-4 py-3"
         data-testid="account-order-toggle"
-        onClick={(event) => {
-          // Нативный toggle и controlled open вместе схлопывают клик — держим состояние сами.
-          event.preventDefault();
-          setOpen((value) => !value);
-        }}
       >
         <div className="min-w-0">
           <p className="font-mono text-sm text-muted">#{order.id.slice(-8)}</p>
