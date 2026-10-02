@@ -54,12 +54,18 @@ export function OrderDetails({ order, showDelivery = true }: Props) {
             data-testid="account-order-line"
           >
             <div data-testid="order-item">
-              <p className="font-medium">{item.titleSnapshot}</p>
+              <p className="font-medium" data-testid="account-order-line-title">
+                {item.titleSnapshot}
+              </p>
               <p className="mt-1 font-mono text-muted">
-                {formatMoney(item.priceSnapshot)} × {item.quantity}
+                <span data-testid="account-order-line-price">{formatMoney(item.priceSnapshot)}</span>
+                {" × "}
+                <span data-testid="account-order-line-qty">{item.quantity}</span>
               </p>
             </div>
-            <p className="font-mono text-accent">{formatMoney(item.lineTotal)}</p>
+            <p className="font-mono text-accent" data-testid="account-order-line-total">
+              {formatMoney(item.lineTotal)}
+            </p>
           </li>
         ))}
       </ul>

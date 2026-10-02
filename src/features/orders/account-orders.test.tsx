@@ -51,6 +51,7 @@ describe("AccountOrders", () => {
     expect(item.hasAttribute("open")).toBe(false);
     expect(item.querySelector('[data-testid="account-order-toggle"]')).toBeTruthy();
     expect(item.querySelectorAll('[data-testid="account-order-line"]')).toHaveLength(2);
+    expect(item.querySelector('[data-testid="account-order-line-qty"]')?.textContent).toBe("1");
     expect(item.textContent).toContain("GPU × 1");
 
     const status = item.querySelector('[data-testid="order-status"]');
