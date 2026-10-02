@@ -47,7 +47,7 @@ export function CartView() {
         {merged.lines.map((item) => (
           <li
             key={item.productId}
-            className="grid gap-4 border border-border bg-surface p-4 sm:grid-cols-[96px_1fr_auto]"
+            className="grid min-w-0 gap-4 border border-border bg-surface p-4 sm:grid-cols-[96px_minmax(0,1fr)_auto]"
             data-testid="cart-item"
           >
             <ProductImage

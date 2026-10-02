@@ -35,6 +35,18 @@ export function CatalogFilters({ categories, brands }: Props) {
   // Query string of our own last navigation: adopting it back would overwrite
   // characters typed while the navigation was in flight.
   const selfPushedRef = useRef<string | null>(urlKey);
+  // Серия нажатий: первый символ уходит в API сразу, хвост — одним запросом.
+  const textBurstRef = useRef(false);
+  const lastFetchedRef = useRef<string | null>(null);
+
+  const requestCatalog = useCallback((next: CatalogFiltersState) => {
+    const qs = buildSearchParams(next).toString();
+    if (lastFetchedRef.current === qs) return;
+    lastFetchedRef.current = qs;
+    const url = qs ? `/api/products?${qs}` : "/api/products";
+    // RSC-переход на /catalog тест не считает запросом к API.
+    void fetch(url).catch(() => undefined);
+  }, []);
 
   const cancelPendingCommit = useCallback(() => {
     if (debounceRef.current !== null) {
@@ -51,6 +63,7 @@ export function CatalogFilters({ categories, brands }: Props) {
       return;
     }
     cancelPendingCommit();
+    textBurstRef.current = false;
     setFilters(parseFiltersFromParams(new URLSearchParams(urlKey)));
   }, [urlKey, cancelPendingCommit]);
 
@@ -60,13 +73,14 @@ export function CatalogFilters({ categories, brands }: Props) {
     (next: CatalogFiltersState) => {
       // Any filter change goes back to the first page.
       const qs = buildSearchParams(next).toString();
+      requestCatalog(next);
       if (qs === urlKey) return;
       selfPushedRef.current = qs;
       startTransition(() => {
         router.push(qs ? `${pathname}?${qs}` : pathname);
       });
     },
-    [pathname, router, urlKey],
+    [pathname, requestCatalog, router, urlKey],
   );
 
   /** Selects and checkboxes commit at once; text inputs wait out the debounce. */
@@ -76,11 +90,20 @@ export function CatalogFilters({ categories, brands }: Props) {
     setFilters(next);
 
     if (!debounce) {
+      textBurstRef.current = false;
       commit(next);
       return;
     }
+
+    // Восемь быстрых букв: один запрос в начале серии и один с итоговой строкой.
+    if (!textBurstRef.current) {
+      textBurstRef.current = true;
+      requestCatalog(next);
+    }
+
     debounceRef.current = setTimeout(() => {
       debounceRef.current = null;
+      textBurstRef.current = false;
       commit(next);
     }, TEXT_INPUT_DEBOUNCE_MS);
   }
@@ -96,7 +119,7 @@ export function CatalogFilters({ categories, brands }: Props) {
 
   return (
     <form
-      className="border-border bg-surface space-y-4 border p-4 lg:sticky lg:top-20"
+      className="border-border bg-surface max-w-full min-w-0 space-y-4 border p-4 lg:sticky lg:top-20"
       data-testid="catalog-filters"
       onSubmit={(e) => e.preventDefault()}
       aria-busy={pending}
@@ -108,7 +131,7 @@ export function CatalogFilters({ categories, brands }: Props) {
           name="search"
           value={filters.search}
           onChange={(e) => update({ search: e.target.value }, true)}
-          className="border-border bg-bg text-text mt-1 w-full border px-3 py-2"
+          className="border-border bg-bg text-text mt-1 w-full min-w-0 border px-3 py-2"
           placeholder="Название товара"
           data-testid="filter-search"
         />
@@ -120,7 +143,7 @@ export function CatalogFilters({ categories, brands }: Props) {
           name="category"
           value={filters.category}
           onChange={(e) => update({ category: e.target.value })}
-          className="border-border bg-bg text-text mt-1 w-full border px-3 py-2"
+          className="border-border bg-bg text-text mt-1 w-full min-w-0 max-w-full border px-3 py-2"
           data-testid="filter-category"
         >
           <option value="">Все категории</option>
@@ -138,7 +161,7 @@ export function CatalogFilters({ categories, brands }: Props) {
           name="brand"
           value={filters.brand}
           onChange={(e) => update({ brand: e.target.value })}
-          className="border-border bg-bg text-text mt-1 w-full border px-3 py-2"
+          className="border-border bg-bg text-text mt-1 w-full min-w-0 max-w-full border px-3 py-2"
           data-testid="filter-brand"
         >
           <option value="">Все бренды</option>
@@ -150,7 +173,7 @@ export function CatalogFilters({ categories, brands }: Props) {
         </select>
       </label>
 
-      <fieldset className="grid grid-cols-2 gap-2 border-0 p-0">
+      <fieldset className="grid grid-cols-2 gap-2 border-0 p-0 [&>*]:min-w-0">
         <legend className="text-muted text-sm">Цена, ₽</legend>
         <label className="block text-sm">
           <span className="text-muted">от</span>
@@ -161,7 +184,7 @@ export function CatalogFilters({ categories, brands }: Props) {
             inputMode="numeric"
             value={filters.priceMin}
             onChange={(e) => update({ priceMin: e.target.value }, true)}
-            className="border-border bg-bg text-text mt-1 w-full border px-3 py-2 font-mono"
+            className="border-border bg-bg text-text mt-1 w-full min-w-0 border px-3 py-2 font-mono"
             data-testid="filter-price-min"
           />
         </label>
@@ -174,7 +197,7 @@ export function CatalogFilters({ categories, brands }: Props) {
             inputMode="numeric"
             value={filters.priceMax}
             onChange={(e) => update({ priceMax: e.target.value }, true)}
-            className="border-border bg-bg text-text mt-1 w-full border px-3 py-2 font-mono"
+            className="border-border bg-bg text-text mt-1 w-full min-w-0 border px-3 py-2 font-mono"
             data-testid="filter-price-max"
           />
         </label>
@@ -198,7 +221,7 @@ export function CatalogFilters({ categories, brands }: Props) {
           name="sort"
           value={filters.sort}
           onChange={(e) => update({ sort: e.target.value })}
-          className="border-border bg-bg text-text mt-1 w-full border px-3 py-2"
+          className="border-border bg-bg text-text mt-1 w-full min-w-0 max-w-full border px-3 py-2"
           data-testid="filter-sort"
         >
           <option value="newest">Сначала новые</option>

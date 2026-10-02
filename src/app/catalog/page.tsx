@@ -140,9 +140,9 @@ async function CatalogResults({
           Под выбранные фильтры ничего не подошло. Измените условия или сбросьте фильтры.
         </p>
       ) : (
-        <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" data-testid="catalog-list">
+        <ul className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-3" data-testid="catalog-list">
           {result.items.map((product, index) => (
-            <li key={product.id}>
+            <li key={product.id} className="min-w-0">
               <ProductCard product={product} priority={index < 3} prefetch={index < 3} />
             </li>
           ))}
@@ -166,7 +166,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
     <div data-testid="catalog-page">
       <h1 className="font-display text-3xl font-semibold">Каталог</h1>
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[260px_1fr] lg:items-start">
+      <div className="mt-8 grid min-w-0 gap-8 lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)] lg:items-start">
         <Suspense fallback={<CatalogFiltersSkeleton />}>
           <CatalogSidebar />
         </Suspense>

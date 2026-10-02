@@ -48,6 +48,8 @@ describe("AccountOrders", () => {
 
     const item = screen.getByTestId("account-order-item");
     expect(screen.getByTestId("account-orders")).toBeTruthy();
+    expect(item.hasAttribute("open")).toBe(true);
+    expect(item.textContent).toContain("GPU × 1");
 
     fireEvent.click(item.querySelector("summary")!);
 

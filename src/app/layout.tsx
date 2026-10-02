@@ -45,7 +45,7 @@ export default function RootLayout({
         <CartHydrator />
         <NavigationProgress />
         <Header />
-        <main className="mx-auto min-h-[calc(100vh-4rem)] w-full max-w-6xl px-4 py-8">
+        <main className="mx-auto min-h-[calc(100vh-4rem)] w-full min-w-0 max-w-6xl px-4 py-8">
           {children}
         </main>
       </body>

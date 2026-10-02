@@ -18,7 +18,10 @@ export function HeaderNav() {
   const onCart = matchesRoute(pathname, routes.cart);
 
   return (
-    <nav className="flex items-center gap-1 sm:gap-4" aria-label="Основная навигация">
+    <nav
+      className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-1 sm:gap-3"
+      aria-label="Основная навигация"
+    >
       <NavLink
         href={routes.catalog}
         className={navLinkClass}

@@ -26,14 +26,25 @@ function AccountOrderItem({ order, initiallyOpen }: OrderItemProps) {
       className="border border-border bg-surface open:border-accent"
       data-testid="account-order-item"
       open={open}
-      onToggle={(event) => setOpen(event.currentTarget.open)}
     >
-      <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-3 px-4 py-3">
-        <div>
+      <summary
+        className="flex cursor-pointer flex-wrap items-center justify-between gap-3 px-4 py-3"
+        onClick={(event) => {
+          // Нативный toggle и controlled open вместе схлопывают клик — держим состояние сами.
+          event.preventDefault();
+          setOpen((value) => !value);
+        }}
+      >
+        <div className="min-w-0">
           <p className="font-mono text-sm text-muted">#{order.id.slice(-8)}</p>
           <p className="mt-1 text-sm">
             {new Date(order.createdAt).toLocaleString("ru-RU")} ·{" "}
             {orderStatusLabel(order.status)}
+          </p>
+          <p className="mt-1 text-sm break-words">
+            {order.items
+              .map((item) => `${item.titleSnapshot} × ${item.quantity}`)
+              .join(", ")}
           </p>
         </div>
         <p className="font-mono text-accent">{formatMoney(order.total)}</p>
@@ -56,9 +67,12 @@ export function AccountOrders({ orders, openOrderId }: Props) {
 
   return (
     <ul className="space-y-3" data-testid="account-orders">
-      {orders.map((order) => (
-        <li key={order.id}>
-          <AccountOrderItem order={order} initiallyOpen={openOrderId === order.id} />
+      {orders.map((order, index) => (
+        <li key={order.id} className="min-w-0">
+          <AccountOrderItem
+            order={order}
+            initiallyOpen={openOrderId ? openOrderId === order.id : index === 0}
+          />
         </li>
       ))}
     </ul>

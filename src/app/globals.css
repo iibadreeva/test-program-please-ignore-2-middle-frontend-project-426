@@ -36,6 +36,13 @@
   box-sizing: border-box;
 }
 
+/* Поля не раздувают узкий экран: min-content у input/select шире колонки. */
+input,
+select,
+textarea {
+  min-width: 0;
+}
+
 html {
   color-scheme: dark;
 }

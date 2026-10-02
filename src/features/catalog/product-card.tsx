@@ -32,7 +32,7 @@ export function ProductCard({
 
   return (
     <article
-      className="border-border bg-surface hover:border-accent flex h-full flex-col border transition"
+      className="border-border bg-surface hover:border-accent flex h-full min-w-0 flex-col border transition"
       data-testid={testIdPrefix}
     >
       <Link href={href} prefetch={prefetch} tabIndex={-1} aria-hidden className="block">
@@ -46,11 +46,11 @@ export function ProductCard({
       </Link>
 
       <div className="flex flex-1 flex-col gap-2 p-4">
-        <p className="text-muted text-xs tracking-wide uppercase">
+        <p className="text-muted text-xs tracking-wide break-words uppercase">
           {product.brand.name} · {product.category.name}
         </p>
 
-        <h2 className="font-display text-base leading-snug font-medium">
+        <h2 className="font-display text-base leading-snug font-medium break-words">
           <Link
             href={href}
             prefetch={prefetch}
