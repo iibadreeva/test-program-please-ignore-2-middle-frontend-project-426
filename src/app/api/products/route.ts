@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
-import { apiError, apiOk, STOCK_API_CACHE_HEADERS, withApiHandler } from "@/server/http";
-import { listProducts, type ProductSort } from "@/server/services/catalog";
+import { apiError, apiOk, STOCK_API_CACHE_HEADERS, withApiHandler } from "@server/http";
+import { listProducts, type ProductSort } from "@server/services/catalog";
 import { listProductsQuerySchema } from "@/shared/api-contract";
 
 export async function GET(request: NextRequest) {

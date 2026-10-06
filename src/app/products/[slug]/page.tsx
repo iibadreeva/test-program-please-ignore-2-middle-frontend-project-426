@@ -4,7 +4,7 @@ import { AddToCartButton } from "@/features/cart/add-to-cart-button";
 import { ProductImage } from "@/features/catalog/product-image";
 import { ProductPrice } from "@/features/catalog/product-price";
 import { routes } from "@/shared/routes";
-import { getProductBySlug } from "@/server/services/catalog";
+import { getProductBySlug } from "@server/services/catalog";
 
 /** Карточка товара: ISR; slug рендерится по запросу и кэшируется. */
 export const revalidate = 60;

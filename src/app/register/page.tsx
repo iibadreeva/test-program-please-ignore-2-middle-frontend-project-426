@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { RegisterForm } from "@/features/auth/register-form";
-import { getCurrentUser } from "@/server/auth/session";
+import { getCurrentUser } from "@server/auth/session";
 import { routes } from "@/shared/routes";
 
 export const dynamic = "force-dynamic";

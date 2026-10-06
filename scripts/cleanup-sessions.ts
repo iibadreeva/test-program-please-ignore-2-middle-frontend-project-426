@@ -1,8 +1,8 @@
 /**
  * Удаляет просроченные сессии батчами. Запуск: npm run sessions:cleanup
  */
-import { cleanupAllExpiredSessions } from "../src/server/auth/session-cleanup";
-import { prisma } from "../src/server/db";
+import { cleanupAllExpiredSessions } from "../server/auth/session-cleanup";
+import { prisma } from "../server/db";
 
 async function main() {
   const count = await cleanupAllExpiredSessions();

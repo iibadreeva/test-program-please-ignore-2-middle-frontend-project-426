@@ -1,5 +1,5 @@
-import { apiOk, PUBLIC_API_CACHE_HEADERS, withApiHandler } from "@/server/http";
-import { listCategories } from "@/server/services/catalog";
+import { apiOk, PUBLIC_API_CACHE_HEADERS, withApiHandler } from "@server/http";
+import { listCategories } from "@server/services/catalog";
 
 export async function GET() {
   return withApiHandler(

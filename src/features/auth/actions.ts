@@ -1,8 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { mapDomainErrorToActionResult } from "@/server/errors/map-to-action";
-import { loginUser, logoutUser, registerUser } from "@/server/services/auth";
+import { mapDomainErrorToActionResult } from "@server/errors/map-to-action";
+import { loginUser, logoutUser, registerUser } from "@server/services/auth";
 import { resolveLoginNext } from "@/shared/auth-next";
 import { routes } from "@/shared/routes";
 

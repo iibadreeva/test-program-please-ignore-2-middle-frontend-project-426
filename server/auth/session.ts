@@ -1,0 +1,92 @@
+import "server-only";
+
+import { cache } from "react";
+import { cookies } from "next/headers";
+import { scheduleOpportunisticSessionCleanup } from "@server/auth/session-cleanup";
+import { generateSessionToken, hashToken } from "@server/auth/session-token";
+import { AuthError } from "@server/errors";
+import * as sessionsRepository from "@server/repositories/sessions.repository";
+import { SESSION_COOKIE, SESSION_COOKIE_MAX_AGE } from "@/shared/constants";
+import { isCookieSecure } from "@/shared/cookie-secure";
+import type { PublicUser } from "@/shared/user";
+
+export type { PublicUser };
+
+/**
+ * Secure-флаг только по явному env: на HTTP (Hexlet/docker) браузер
+ * отбрасывает Secure-cookie, и сессия «пропадает» после reload.
+ * На HTTPS-хостинге задайте COOKIE_SECURE=true.
+ */
+function sessionCookieOptions(maxAge: number) {
+  return {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    path: "/",
+    secure: isCookieSecure(),
+    maxAge,
+  };
+}
+
+export async function createSession(user: PublicUser): Promise<void> {
+  const token = generateSessionToken();
+  const tokenHash = hashToken(token);
+  const expiresAt = new Date(Date.now() + SESSION_COOKIE_MAX_AGE * 1000);
+
+  // Редкий батч в фоне; полный cleanup — npm run sessions:cleanup.
+  scheduleOpportunisticSessionCleanup();
+
+  await sessionsRepository.createSessionRecord({
+    tokenHash,
+    userId: user.id,
+    expiresAt,
+  });
+
+  const jar = await cookies();
+  jar.set(SESSION_COOKIE, token, sessionCookieOptions(SESSION_COOKIE_MAX_AGE));
+}
+
+export async function destroySession(): Promise<void> {
+  const jar = await cookies();
+  const token = jar.get(SESSION_COOKIE)?.value;
+  if (token) {
+    const tokenHash = hashToken(token);
+    await sessionsRepository.deleteSessionsByTokenHash(tokenHash);
+  }
+  // Те же path/secure, иначе браузер может не снять cookie.
+  jar.set(SESSION_COOKIE, "", sessionCookieOptions(0));
+}
+
+async function loadCurrentUser(): Promise<PublicUser | null> {
+  const jar = await cookies();
+  const token = jar.get(SESSION_COOKIE)?.value;
+  if (!token) return null;
+
+  const tokenHash = hashToken(token);
+  const session = await sessionsRepository.findSessionWithUserByTokenHash(tokenHash);
+
+  if (!session) return null;
+
+  if (session.expiresAt.getTime() <= Date.now()) {
+    await sessionsRepository.deleteSessionById(session.id).catch(() => undefined);
+    return null;
+  }
+
+  return {
+    id: session.user.id,
+    email: session.user.email,
+    name: session.user.name,
+  };
+}
+
+/** Дедупликация getCurrentUser в layout + page в рамках одного запроса. */
+export const getCurrentUser = cache(loadCurrentUser);
+
+export async function requireUser(): Promise<PublicUser> {
+  const user = await getCurrentUser();
+  if (!user) {
+    throw new AuthError("UNAUTHORIZED", "Требуется вход");
+  }
+  return user;
+}
+
+export { AuthError } from "@server/errors";

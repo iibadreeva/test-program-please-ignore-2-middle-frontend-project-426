@@ -10,11 +10,11 @@ vi.mock("@sentry/nextjs", () => ({
   addBreadcrumb: vi.fn(),
 }));
 
-vi.mock("@/server/auth/session", () => ({
+vi.mock("@server/auth/session", () => ({
   getCurrentUser,
 }));
 
-vi.mock("@/server/services/orders", () => ({
+vi.mock("@server/services/orders", () => ({
   listOrders,
   createOrder,
   createOrderSchema: {

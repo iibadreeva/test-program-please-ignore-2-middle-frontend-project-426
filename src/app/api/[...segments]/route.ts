@@ -1,4 +1,4 @@
-import { apiError } from "@/server/http";
+import { apiError } from "@server/http";
 
 function notFound() {
   return apiError(404, "NOT_FOUND", "Эндпоинт не найден");

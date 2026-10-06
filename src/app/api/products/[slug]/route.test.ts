@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { STOCK_API_CACHE_HEADERS } from "@/server/http";
+import { STOCK_API_CACHE_HEADERS } from "@server/http";
 
 const getProductBySlug = vi.hoisted(() => vi.fn());
 
-vi.mock("@/server/services/catalog", () => ({
+vi.mock("@server/services/catalog", () => ({
   getProductBySlug: (...args: unknown[]) => getProductBySlug(...args),
 }));
 

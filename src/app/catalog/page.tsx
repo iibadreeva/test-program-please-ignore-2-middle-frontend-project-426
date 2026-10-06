@@ -8,11 +8,11 @@ import {
   listCategories,
   listProducts,
   type ProductSort,
-} from "@/server/services/catalog";
+} from "@server/services/catalog";
 import {
   isDatabaseUnavailableError,
   reportUnexpectedError,
-} from "@/server/observability/report";
+} from "@server/observability/report";
 import { listProductsQuerySchema } from "@/shared/api-contract";
 
 /**

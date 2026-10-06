@@ -1,8 +1,8 @@
 import { Suspense } from "react";
 import { CatalogCtaLink } from "@/components/nav-link";
 import { PromoList } from "@/features/promos/promo-list";
-import { reportUnexpectedError } from "@/server/observability/report";
-import { listPromoBlocks } from "@/server/services/promos";
+import { reportUnexpectedError } from "@server/observability/report";
+import { listPromoBlocks } from "@server/services/promos";
 import type { PromoBlock } from "@/shared/api-contract";
 
 /** Витрина промо: ISR + data-cache (сессия в layout больше не блокирует). */

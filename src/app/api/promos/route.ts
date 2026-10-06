@@ -1,5 +1,5 @@
-import { apiOk, STOCK_API_CACHE_HEADERS, withApiHandler } from "@/server/http";
-import { listPromoBlocks } from "@/server/services/promos";
+import { apiOk, STOCK_API_CACHE_HEADERS, withApiHandler } from "@server/http";
+import { listPromoBlocks } from "@server/services/promos";
 
 export async function GET() {
   return withApiHandler(

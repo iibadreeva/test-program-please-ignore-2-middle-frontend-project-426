@@ -1,5 +1,5 @@
-import { apiOk, withApiHandler } from "@/server/http";
-import { prisma } from "@/server/db";
+import { apiOk, withApiHandler } from "@server/http";
+import { prisma } from "@server/db";
 
 export const dynamic = "force-dynamic";
 

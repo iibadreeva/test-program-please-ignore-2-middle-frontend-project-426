@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { CheckoutForm } from "@/features/checkout/form";
-import { requireUser } from "@/server/auth/session";
+import { requireUser } from "@server/auth/session";
 import { loginHref } from "@/shared/auth-next";
 import { routes } from "@/shared/routes";
 

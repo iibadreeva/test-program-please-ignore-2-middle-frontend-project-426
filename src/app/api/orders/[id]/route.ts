@@ -1,6 +1,6 @@
-import { apiError, apiOk, withApiHandler } from "@/server/http";
-import { getCurrentUser } from "@/server/auth/session";
-import { getOrderById } from "@/server/services/orders";
+import { apiError, apiOk, withApiHandler } from "@server/http";
+import { getCurrentUser } from "@server/auth/session";
+import { getOrderById } from "@server/services/orders";
 
 type Context = { params: Promise<{ id: string }> };
 

@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/server/services/catalog", () => ({
+vi.mock("@server/services/catalog", () => ({
   listProductsByIds: vi.fn().mockResolvedValue([]),
 }));
 
-import { listProductsByIds } from "@/server/services/catalog";
+import { listProductsByIds } from "@server/services/catalog";
 import { getCartProducts } from "@/features/cart/actions";
 import { MAX_CART_IDS } from "@/shared/constants";
 

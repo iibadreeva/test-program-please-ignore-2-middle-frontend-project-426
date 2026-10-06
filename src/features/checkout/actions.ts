@@ -1,9 +1,9 @@
 "use server";
 
 import { revalidatePath, revalidateTag } from "next/cache";
-import { requireUser } from "@/server/auth/session";
-import { mapDomainErrorToActionResult } from "@/server/errors/map-to-action";
-import { createOrder, createOrderSchema } from "@/server/services/orders";
+import { requireUser } from "@server/auth/session";
+import { mapDomainErrorToActionResult } from "@server/errors/map-to-action";
+import { createOrder, createOrderSchema } from "@server/services/orders";
 import type { OrderProblemItem } from "@/shared/api-contract";
 import { routes } from "@/shared/routes";
 

@@ -1,6 +1,6 @@
-import { apiError, apiOk, withApiHandler } from "@/server/http";
-import { getCurrentUser } from "@/server/auth/session";
-import { createOrder, createOrderSchema, listOrders } from "@/server/services/orders";
+import { apiError, apiOk, withApiHandler } from "@server/http";
+import { getCurrentUser } from "@server/auth/session";
+import { createOrder, createOrderSchema, listOrders } from "@server/services/orders";
 
 export async function GET() {
   return withApiHandler(async () => {

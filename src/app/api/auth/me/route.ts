@@ -1,5 +1,5 @@
-import { apiError, apiOk, withApiHandler } from "@/server/http";
-import { getMe } from "@/server/services/auth";
+import { apiError, apiOk, withApiHandler } from "@server/http";
+import { getMe } from "@server/services/auth";
 
 /** Сессия не должна попадать в CDN / HTTP-кэш браузера. */
 const AUTH_ME_HEADERS = {

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { LoginForm } from "@/features/auth/login-form";
-import { getCurrentUser } from "@/server/auth/session";
+import { getCurrentUser } from "@server/auth/session";
 import { resolveLoginNext } from "@/shared/auth-next";
 
 export const dynamic = "force-dynamic";

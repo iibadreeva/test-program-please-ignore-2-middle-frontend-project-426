@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 
 const getProductBySlug = vi.hoisted(() => vi.fn());
 
-vi.mock("@/server/services/catalog", () => ({
+vi.mock("@server/services/catalog", () => ({
   getProductBySlug: (...args: unknown[]) => getProductBySlug(...args),
 }));
 

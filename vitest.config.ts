@@ -4,6 +4,7 @@ import path from "path";
 
 const alias = {
   "@": path.resolve(__dirname, "./src"),
+  "@server": path.resolve(__dirname, "./server"),
   // В Node/Vitest нет условия react-server — иначе server-only бросает при импорте.
   "server-only": path.resolve(__dirname, "./node_modules/server-only/empty.js"),
 };
@@ -17,7 +18,7 @@ export default defineConfig({
         test: {
           name: "node",
           environment: "node",
-          include: ["src/**/*.test.ts", "prisma/seed/**/*.test.ts"],
+          include: ["src/**/*.test.ts", "server/**/*.test.ts", "prisma/seed/**/*.test.ts"],
         },
       },
       {

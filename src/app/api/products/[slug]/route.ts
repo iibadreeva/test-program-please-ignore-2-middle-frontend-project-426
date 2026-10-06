@@ -1,5 +1,5 @@
-import { apiError, apiOk, STOCK_API_CACHE_HEADERS, withApiHandler } from "@/server/http";
-import { getProductBySlug } from "@/server/services/catalog";
+import { apiError, apiOk, STOCK_API_CACHE_HEADERS, withApiHandler } from "@server/http";
+import { getProductBySlug } from "@server/services/catalog";
 
 type Context = { params: Promise<{ slug: string }> };
 

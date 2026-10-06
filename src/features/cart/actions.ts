@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { listProductsByIds } from "@/server/services/catalog";
+import { listProductsByIds } from "@server/services/catalog";
 import type { ProductSummary } from "@/shared/api-contract";
 import { MAX_CART_IDS } from "@/shared/constants";
 

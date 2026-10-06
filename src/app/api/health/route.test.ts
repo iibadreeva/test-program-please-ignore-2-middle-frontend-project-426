@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const queryRaw = vi.fn();
 const captureException = vi.hoisted(() => vi.fn());
 
-vi.mock("@/server/db", () => ({
+vi.mock("@server/db", () => ({
   prisma: {
     $queryRaw: (...args: unknown[]) => queryRaw(...args),
   },

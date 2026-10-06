@@ -1,5 +1,5 @@
-import { apiError, apiOk, withApiHandler } from "@/server/http";
-import { loginSchema, loginUser } from "@/server/services/auth";
+import { apiError, apiOk, withApiHandler } from "@server/http";
+import { loginSchema, loginUser } from "@server/services/auth";
 
 export async function POST(request: Request) {
   return withApiHandler(async () => {

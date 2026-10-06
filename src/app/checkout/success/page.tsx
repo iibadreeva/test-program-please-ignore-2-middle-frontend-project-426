@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { OrderDetails } from "@/features/orders/order-details";
-import { requireUser } from "@/server/auth/session";
-import { getOrderById } from "@/server/services/orders";
+import { requireUser } from "@server/auth/session";
+import { getOrderById } from "@server/services/orders";
 import { checkoutSuccessPath, loginHref } from "@/shared/auth-next";
 import { routes } from "@/shared/routes";
 

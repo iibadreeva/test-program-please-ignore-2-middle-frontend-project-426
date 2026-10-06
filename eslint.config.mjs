@@ -35,7 +35,7 @@ const eslintConfig = [
         {
           patterns: [
             {
-              group: ["@/server", "@/server/*", "@/features", "@/features/*", "@/app", "@/app/*"],
+              group: ["@server", "@server/*", "@/features", "@/features/*", "@/app", "@/app/*"],
               message: "shared не импортирует server/features/app",
             },
           ],
@@ -44,7 +44,7 @@ const eslintConfig = [
     },
   },
   {
-    files: ["src/server/**/*.{ts,tsx}"],
+    files: ["server/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -60,7 +60,7 @@ const eslintConfig = [
     },
   },
   {
-    files: ["src/server/domain/**/*.{ts,tsx}"],
+    files: ["server/domain/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -68,10 +68,10 @@ const eslintConfig = [
           patterns: [
             {
               group: [
-                "@/server/repositories",
-                "@/server/repositories/*",
-                "@/server/services",
-                "@/server/services/*",
+                "@server/repositories",
+                "@server/repositories/*",
+                "@server/services",
+                "@server/services/*",
                 "@/features",
                 "@/features/*",
               ],
@@ -84,7 +84,7 @@ const eslintConfig = [
   },
   {
     // Репозиторий — только Prisma/includes; доменные правила собирает service.
-    files: ["src/server/repositories/**/*.{ts,tsx}"],
+    files: ["server/repositories/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -92,10 +92,10 @@ const eslintConfig = [
           patterns: [
             {
               group: [
-                "@/server/domain",
-                "@/server/domain/*",
-                "@/server/services",
-                "@/server/services/*",
+                "@server/domain",
+                "@server/domain/*",
+                "@server/services",
+                "@server/services/*",
                 "@/features",
                 "@/features/*",
               ],
@@ -118,7 +118,7 @@ const eslintConfig = [
         {
           patterns: [
             {
-              group: ["@/server", "@/server/*"],
+              group: ["@server", "@server/*"],
               message:
                 "features UI → только через actions/API; server-only только в **/actions.ts",
             },
@@ -136,16 +136,16 @@ const eslintConfig = [
           patterns: [
             {
               group: [
-                "@/server",
-                "@/server/*",
-                "@/server/repositories",
-                "@/server/repositories/*",
-                "@/server/services",
-                "@/server/services/*",
-                "@/server/auth",
-                "@/server/auth/*",
-                "@/server/db",
-                "@/server/db/*",
+                "@server",
+                "@server/*",
+                "@server/repositories",
+                "@server/repositories/*",
+                "@server/services",
+                "@server/services/*",
+                "@server/auth",
+                "@server/auth/*",
+                "@server/db",
+                "@server/db/*",
                 "@prisma/client",
               ],
               message: "components не ходят в server/Prisma — данные через app/layout или features/actions",
